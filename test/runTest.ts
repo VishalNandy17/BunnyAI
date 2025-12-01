@@ -36,3 +36,17 @@ export function run(): Promise<void> {
         });
     });
 }
+
+// If this file is run directly, execute the tests
+if (require.main === module) {
+    run().then(
+        () => {
+            console.log('All tests passed!');
+            process.exit(0);
+        },
+        (err) => {
+            console.error('Tests failed:', err);
+            process.exit(1);
+        }
+    );
+}

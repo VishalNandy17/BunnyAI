@@ -1,16 +1,22 @@
 import { IAIProvider } from '../types';
+import { AIProvider } from './AIProvider';
 
 export class AITestGenerator implements IAIProvider {
+    private aiProvider: AIProvider;
+
+    constructor() {
+        this.aiProvider = new AIProvider();
+    }
+
     async generateTests(code: string): Promise<string> {
-        // TODO: Call AI API to generate tests
-        return `// Generated test for: ${code.substring(0, 50)}...`;
+        return this.aiProvider.generateTests(code);
     }
 
     async generateDocs(code: string): Promise<string> {
-        return '/** Documentation */';
+        return this.aiProvider.generateDocs(code);
     }
 
     async analyzeError(error: string): Promise<string> {
-        return 'Error analysis...';
+        return this.aiProvider.analyzeError(error);
     }
 }
