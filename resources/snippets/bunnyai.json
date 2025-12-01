@@ -1,0 +1,9 @@
+{
+    "BunnyAI Test": {
+        "prefix": "bunny-test",
+        "body": [
+            "test('should work', () => {});"
+        ],
+        "description": "BunnyAI Test Snippet"
+    }
+}
