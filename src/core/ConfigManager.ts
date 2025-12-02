@@ -13,6 +13,8 @@ export interface ExtensionConfig {
     aiModel?: string;
     autoDetectFramework?: boolean;
     enableCodeLens?: boolean;
+    maxRequestBodySize?: number;
+    maxResponseSize?: number;
 }
 
 export class ConfigManager {
@@ -55,7 +57,9 @@ export class ConfigManager {
             aiApiKey: this.config.get<string>('aiApiKey'),
             aiModel: this.config.get<string>('aiModel'),
             autoDetectFramework: this.config.get<boolean>('autoDetectFramework', true),
-            enableCodeLens: this.config.get<boolean>('enableCodeLens', true)
+            enableCodeLens: this.config.get<boolean>('enableCodeLens', true),
+            maxRequestBodySize: this.config.get<number>('maxRequestBodySize', 1024 * 1024), // 1 MB
+            maxResponseSize: this.config.get<number>('maxResponseSize', 10 * 1024 * 1024) // 10 MB
         };
     }
 
@@ -118,6 +122,14 @@ export class ConfigManager {
 
     isCodeLensEnabled(): boolean {
         return this.getConfig().enableCodeLens !== false;
+    }
+
+    getMaxRequestBodySize(): number {
+        return this.getConfig().maxRequestBodySize || 1024 * 1024;
+    }
+
+    getMaxResponseSize(): number {
+        return this.getConfig().maxResponseSize || 10 * 1024 * 1024;
     }
 }
 

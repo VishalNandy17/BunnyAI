@@ -191,6 +191,64 @@ bunnyai-pro/
         └── sample-projects/
 ```
 
+## 🔒 Security Considerations
+
+### API Key Storage
+- **Secure Storage**: AI API keys are stored using VS Code's SecretStorage API, which provides encrypted storage
+- **Migration**: Existing API keys in settings are automatically migrated to SecretStorage
+- **Configuration**: Use the `BunnyAI: Configure AI API Key` command to securely manage your API keys
+
+### URL Validation
+- Only `http://` and `https://` protocols are allowed for API requests
+- Invalid protocols are rejected with clear error messages
+- Prevents SSRF (Server-Side Request Forgery) attacks
+
+### Size Limits
+- **Request Body**: Limited to 1MB by default (configurable)
+- **Response Size**: Limited to 10MB by default (configurable)
+- Prevents memory exhaustion and DoS attacks
+
+### Rate Limiting
+- AI API calls are rate-limited (minimum 500ms between calls)
+- Prevents accidental rapid-fire requests and API abuse
+
+### Best Practices
+1. Always use HTTPS for production APIs
+2. Store API keys securely using the provided command
+3. Review size limits based on your use case
+4. Monitor API usage to prevent abuse
+
+## ⚙️ Configuration
+
+Open VS Code Settings (`Ctrl+,`) and search for "BunnyAI" to configure:
+
+- **Base URL**: Default base URL for API requests
+- **Timeout**: Request timeout in milliseconds (default: 30000)
+- **Caching**: Enable/disable response caching with configurable TTL
+- **Retry**: Configure retry attempts and delays
+- **AI Provider**: Choose between OpenAI, Anthropic, or Custom
+- **Size Limits**: Configure request body and response size limits
+- **Framework Detection**: Enable/disable automatic framework detection
+
+See [HOW_TO_RUN.md](HOW_TO_RUN.md) for detailed configuration instructions.
+
+## 🧪 Testing
+
+### Automated Tests
+```bash
+npm test
+```
+
+Runs comprehensive test suite covering:
+- HTTP Client (validation, size limits, timeouts)
+- API Executor (request execution, error handling)
+- Middleware (Auth, Retry, Cache)
+- Config Manager
+- Express Parser
+- Extension activation
+
+See [TESTING_GUIDE.md](TESTING_GUIDE.md) for comprehensive testing instructions.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.

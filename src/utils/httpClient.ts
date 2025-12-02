@@ -9,6 +9,16 @@ export interface HttpClientOptions {
     headers?: Record<string, string>;
     body?: any;
     timeout?: number;
+    /**
+     * Maximum number of bytes allowed in the request body.
+     * Defaults to HttpClient.DEFAULT_MAX_REQUEST_BODY_SIZE.
+     */
+    maxRequestBodyBytes?: number;
+    /**
+     * Maximum number of bytes allowed in the response body.
+     * Defaults to HttpClient.DEFAULT_MAX_RESPONSE_SIZE.
+     */
+    maxResponseBytes?: number;
 }
 
 export interface HttpClientResponse {
@@ -22,12 +32,34 @@ export interface HttpClientResponse {
 
 export class HttpClient {
     private static readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
+    private static readonly DEFAULT_MAX_REQUEST_BODY_SIZE = 1 * 1024 * 1024; // 1MB
+    private static readonly DEFAULT_MAX_RESPONSE_SIZE = 10 * 1024 * 1024; // 10MB
 
     async request(options: HttpClientOptions): Promise<HttpClientResponse> {
         const startTime = Date.now();
         const url = new URL(options.url);
+
+        // Only allow HTTP/HTTPS to avoid obvious SSRF-style issues
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            const duration = Date.now() - startTime;
+            const message = `Unsupported URL protocol: ${url.protocol}`;
+            Logger.error(message, new Error(message));
+            throw {
+                status: 0,
+                statusText: 'Invalid URL',
+                headers: {},
+                data: { error: message },
+                duration,
+                size: 0
+            } as HttpClientResponse;
+        }
         const isHttps = url.protocol === 'https:';
         const httpModule = isHttps ? https : http;
+
+        const maxRequestBodyBytes =
+            options.maxRequestBodyBytes ?? HttpClient.DEFAULT_MAX_REQUEST_BODY_SIZE;
+        const maxResponseBytes =
+            options.maxResponseBytes ?? HttpClient.DEFAULT_MAX_RESPONSE_SIZE;
 
         return new Promise((resolve, reject) => {
             try {
@@ -63,8 +95,28 @@ export class HttpClient {
                     let totalSize = 0;
 
                     res.on('data', (chunk: Buffer) => {
-                        data += chunk.toString();
                         totalSize += chunk.length;
+
+                        // Enforce maximum response size
+                        if (totalSize > maxResponseBytes) {
+                            const duration = Date.now() - startTime;
+                            const error = new Error('Response exceeded maximum allowed size');
+                            Logger.error('HTTP response too large', error);
+                            res.destroy();
+                            reject({
+                                status: 0,
+                                statusText: 'Response Too Large',
+                                headers: {},
+                                data: {
+                                    error: `Response exceeded maximum size of ${maxResponseBytes} bytes`
+                                },
+                                duration,
+                                size: totalSize
+                            });
+                            return;
+                        }
+
+                        data += chunk.toString();
                     });
 
                     res.on('end', () => {
@@ -123,9 +175,29 @@ export class HttpClient {
 
                 // Send request body if present
                 if (options.body) {
-                    const bodyString = typeof options.body === 'string' 
-                        ? options.body 
+                    const bodyString = typeof options.body === 'string'
+                        ? options.body
                         : JSON.stringify(options.body);
+
+                    const bodyBytes = Buffer.byteLength(bodyString, 'utf8');
+                    if (bodyBytes > maxRequestBodyBytes) {
+                        const duration = Date.now() - startTime;
+                        const error = new Error('Request body exceeded maximum allowed size');
+                        Logger.error('HTTP request body too large', error);
+                        reject({
+                            status: 0,
+                            statusText: 'Request Entity Too Large',
+                            headers: {},
+                            data: {
+                                error: `Request body exceeded maximum size of ${maxRequestBodyBytes} bytes`
+                            },
+                            duration,
+                            size: 0
+                        });
+                        req.destroy();
+                        return;
+                    }
+
                     req.write(bodyString);
                 }
 

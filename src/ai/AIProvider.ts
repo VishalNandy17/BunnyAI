@@ -2,10 +2,14 @@ import { IAIProvider } from '../types';
 import { ConfigManager } from '../core/ConfigManager';
 import { Logger } from '../utils/logger';
 import { HttpClient } from '../utils/httpClient';
+import { SecretStorage } from '../storage/SecretStorage';
 
 export class AIProvider implements IAIProvider {
     private configManager: ConfigManager;
     private httpClient: HttpClient;
+    private static readonly AI_SECRET_KEY = 'bunnyai.aiApiKey';
+    private static readonly MIN_REQUEST_INTERVAL_MS = 500; // simple rate limit: 2 req/sec
+    private static lastRequestTimestamp = 0;
 
     constructor() {
         this.configManager = ConfigManager.getInstance();
@@ -15,7 +19,7 @@ export class AIProvider implements IAIProvider {
     async generateTests(code: string): Promise<string> {
         try {
             const provider = this.configManager.getAIProvider();
-            const apiKey = this.configManager.getAIApiKey();
+            const apiKey = await this.getApiKey();
             const model = this.configManager.getAIModel() || 'gpt-4';
 
             if (!apiKey) {
@@ -34,7 +38,7 @@ export class AIProvider implements IAIProvider {
     async generateDocs(code: string): Promise<string> {
         try {
             const provider = this.configManager.getAIProvider();
-            const apiKey = this.configManager.getAIApiKey();
+            const apiKey = await this.getApiKey();
             const model = this.configManager.getAIModel() || 'gpt-4';
 
             if (!apiKey) {
@@ -53,7 +57,7 @@ export class AIProvider implements IAIProvider {
     async analyzeError(error: string): Promise<string> {
         try {
             const provider = this.configManager.getAIProvider();
-            const apiKey = this.configManager.getAIApiKey();
+            const apiKey = await this.getApiKey();
             const model = this.configManager.getAIModel() || 'gpt-4';
 
             if (!apiKey) {
@@ -84,6 +88,7 @@ export class AIProvider implements IAIProvider {
 
     private async callOpenAI(apiKey: string, model: string, prompt: string): Promise<string> {
         try {
+            await this.enforceRateLimit();
             const response = await this.httpClient.post(
                 'https://api.openai.com/v1/chat/completions',
                 {
@@ -119,6 +124,7 @@ export class AIProvider implements IAIProvider {
 
     private async callAnthropic(apiKey: string, model: string, prompt: string): Promise<string> {
         try {
+            await this.enforceRateLimit();
             const response = await this.httpClient.post(
                 'https://api.anthropic.com/v1/messages',
                 {
@@ -159,6 +165,7 @@ export class AIProvider implements IAIProvider {
         }
 
         try {
+            await this.enforceRateLimit();
             const response = await this.httpClient.post(
                 customEndpoint,
                 {
@@ -180,6 +187,51 @@ export class AIProvider implements IAIProvider {
             Logger.error('Custom AI API call failed', error);
             throw error;
         }
+    }
+
+    /**
+     * Retrieve the AI API key from SecretStorage, falling back to the
+     * legacy configuration value and migrating it into SecretStorage.
+     */
+    private async getApiKey(): Promise<string> {
+        const secretStorage = SecretStorage.getInstance();
+
+        // 1) Try secret storage first
+        const secret = (await secretStorage.get(AIProvider.AI_SECRET_KEY))?.trim();
+        if (secret) {
+            return secret;
+        }
+
+        // 2) Fallback: legacy configuration value, then migrate
+        const configKey = this.configManager.getAIApiKey()?.trim();
+        if (configKey) {
+            try {
+                await secretStorage.set(AIProvider.AI_SECRET_KEY, configKey);
+                await this.configManager.update('aiApiKey', '');
+                Logger.log('Migrated AI API key from configuration to SecretStorage.');
+            } catch (error) {
+                Logger.error('Failed to migrate AI API key to SecretStorage', error);
+            }
+            return configKey;
+        }
+
+        throw new Error(
+            'AI API key not configured. Use the "BunnyAI: Configure AI API Key" command or set bunnyai.aiApiKey in settings.'
+        );
+    }
+
+    /**
+     * Very small in-memory rate limiter to avoid accidental rapid-fire
+     * AI requests. This is intentionally simple and per-session only.
+     */
+    private async enforceRateLimit(): Promise<void> {
+        const now = Date.now();
+        const elapsed = now - AIProvider.lastRequestTimestamp;
+        if (elapsed < AIProvider.MIN_REQUEST_INTERVAL_MS) {
+            const delay = AIProvider.MIN_REQUEST_INTERVAL_MS - elapsed;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        AIProvider.lastRequestTimestamp = Date.now();
     }
 
     private buildTestGenerationPrompt(code: string): string {

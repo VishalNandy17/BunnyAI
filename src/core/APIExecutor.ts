@@ -51,7 +51,9 @@ export class APIExecutor {
                         url: processedRequest.url,
                         headers: processedRequest.headers,
                         body: processedRequest.body,
-                        timeout: this.configManager.getDefaultTimeout()
+                        timeout: this.configManager.getDefaultTimeout(),
+                        maxRequestBodyBytes: this.configManager.getMaxRequestBodySize(),
+                        maxResponseBytes: this.configManager.getMaxResponseSize()
                     });
 
                     // Cache GET responses (if enabled)

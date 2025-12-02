@@ -3,6 +3,7 @@ import { ExtensionCore } from './core/ExtensionCore';
 import { Logger } from './utils/logger';
 import { WebviewManager } from './webview/WebviewManager';
 import { WorkspaceStorage } from './storage/WorkspaceStorage';
+import { SecretStorage } from './storage/SecretStorage';
 import { HistoryManager } from './core/HistoryManager';
 import { ConfigManager } from './core/ConfigManager';
 import { WorkspaceDetector } from './core/WorkspaceDetector';
@@ -20,6 +21,7 @@ export async function activate(context: vscode.ExtensionContext) {
     try {
         // Initialize storage first
         WorkspaceStorage.initialize(context);
+        SecretStorage.initialize(context);
         HistoryManager.initialize(WorkspaceStorage.getInstance());
 
         // Initialize configuration manager
@@ -191,6 +193,38 @@ export async function activate(context: vscode.ExtensionContext) {
                 } catch (error) {
                     Logger.error('Failed to generate documentation', error);
                     vscode.window.showErrorMessage('Failed to generate documentation. Check output for details.');
+                }
+            }),
+            vscode.commands.registerCommand('bunnyai.configureApiKey', async () => {
+                try {
+                    const secretStorage = SecretStorage.getInstance();
+                    const configManager = ConfigManager.getInstance();
+
+                    const existingSecret = await secretStorage.get('bunnyai.aiApiKey');
+                    const existingConfig = configManager.getAIApiKey();
+
+                    const apiKey = await vscode.window.showInputBox({
+                        prompt: 'Enter your AI API key (OpenAI, Anthropic, or custom provider)',
+                        placeHolder: 'sk-...',
+                        password: true,
+                        value: existingSecret || existingConfig || ''
+                    });
+
+                    if (!apiKey) {
+                        return;
+                    }
+
+                    await secretStorage.set('bunnyai.aiApiKey', apiKey);
+
+                    // Clear legacy config-based key to avoid storing secrets in plain text.
+                    if (existingConfig) {
+                        await configManager.update('aiApiKey', '');
+                    }
+
+                    vscode.window.showInformationMessage('AI API key saved securely to VS Code Secret Storage.');
+                } catch (error) {
+                    Logger.error('Failed to configure AI API key', error);
+                    vscode.window.showErrorMessage('Failed to configure AI API key. See output for details.');
                 }
             }),
             vscode.commands.registerCommand('bunnyai.showStatus', () => {

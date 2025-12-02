@@ -1,119 +1,172 @@
 # Testing Guide for BunnyAI Pro Extension
 
-## Method 1: Development Mode Testing (Recommended)
+## Quick Testing
 
-### Step 1: Launch Extension in Development Mode
-1. Open the project in VS Code
-2. Press **F5** (or go to **Run and Debug** > **Run Extension**)
-3. A new VS Code window will open (Extension Development Host)
+### Method 1: Development Mode (Recommended)
 
-### Step 2: Test CodeLens Feature
-1. In the **new window**, open `sample-server.ts`
-2. You should see **CodeLens** buttons above route definitions:
-   - `▶ Run GET /api/users` above line 7
-   - `▶ Run POST /api/users` above line 12
-3. Click on any CodeLens button
-4. The **BunnyAI Request Panel** should open
+1. **Press F5** in VS Code
+   - Opens a new Extension Development Host window
 
-### Step 3: Test Request Panel
-1. Verify the Request Panel opens with:
-   - Method dropdown (GET/POST/PUT/DELETE)
-   - URL input field (pre-filled with route)
-   - Send Request button
-2. Click **Send Request**
-3. Check the response area for simulated response
+2. **In the new window**:
+   - Open `sample-server.ts` (or any Express.js file)
+   - Look for CodeLens buttons above routes (e.g., `▶ Run GET /api/users`)
+   - Click a CodeLens button
+   - The BunnyAI Request Panel should open
 
-### Step 4: Test Commands
-1. Open Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`)
-2. Type "BunnyAI" and test:
-   - `BunnyAI: Run API`
-   - `BunnyAI: Generate Tests`
-   - `BunnyAI: Analyze Error`
-   - `BunnyAI: Generate Documentation`
+3. **Test the Request Panel**:
+   - Verify method and URL are pre-filled
+   - Click "Send Request"
+   - Check the response
 
-### Step 5: Check Sidebar
-1. Look for **BunnyAI** icon in the Activity Bar (left sidebar)
-2. Click it to see:
-   - Requests view
-   - History view
-   - Collections view
+4. **Test commands**:
+   - Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
+   - Type "BunnyAI" and try:
+     - `BunnyAI: Run API`
+     - `BunnyAI: Generate Tests` (requires AI API key)
+     - `BunnyAI: Analyze Error` (requires AI API key)
+     - `BunnyAI: Generate Documentation` (requires AI API key)
+     - `BunnyAI: Configure AI API Key` (new!)
 
-### Step 6: Check Debug Console
-1. In the **original VS Code window**, check the **Debug Console**
-2. You should see logs like:
-   - "Activating BunnyAI Pro..."
-   - "BunnyAI Pro activated successfully!"
-   - "Running API: GET /api/users"
+5. **Check the sidebar**:
+   - Look for the BunnyAI icon in the Activity Bar
+   - Click to see Requests, History, and Collections views
 
-## Method 2: Test Installed Extension
+6. **Check logs**:
+   - In the original VS Code window, open the Debug Console
+   - You should see activation logs
 
-### Step 1: Install the VSIX
+### Method 2: Test Installed Extension
+
 ```bash
+# Install the VSIX
 code --install-extension bunnyai-pro-0.0.1.vsix
+
+# Then reload VS Code and test the same features
 ```
 
-### Step 2: Reload VS Code
-1. Close and reopen VS Code, or
-2. Press `Ctrl+Shift+P` and run "Developer: Reload Window"
+### Method 3: Automated Tests
 
-### Step 3: Test Features
-Follow the same testing steps as Method 1
-
-## Method 3: Automated Tests
-
-### Run Unit Tests
 ```bash
+# Run all tests
 npm test
+
+# This runs:
+# - HTTP Client tests
+# - API Executor tests
+# - Middleware tests (Auth, Retry, Cache)
+# - Config Manager tests
+# - Express Parser tests
+# - Extension tests
 ```
 
-### Run with Coverage
-```bash
-npm run compile-tests
-npm test
-```
+## Security Testing
 
-## Method 4: Manual Feature Testing Checklist
+### Test Secret Storage
+1. Run `BunnyAI: Configure AI API Key`
+2. Enter a test API key
+3. Verify the key is stored securely (not visible in settings.json)
+4. Test AI features to confirm key works
 
-### ✅ CodeLens Provider
-- [ ] Open TypeScript/JavaScript file with Express routes
-- [ ] Verify CodeLens appears above route definitions
-- [ ] Click CodeLens to open Request Panel
+### Test URL Validation
+1. Try to send a request with `file://` protocol
+2. Should be rejected with clear error message
+3. Try `http://` and `https://` - should work
 
-### ✅ Request Panel
-- [ ] Panel opens correctly
-- [ ] Method and URL are pre-filled
-- [ ] Can change method
-- [ ] Can edit URL
-- [ ] Send Request button works
-- [ ] Response displays correctly
+### Test Size Limits
+1. Try sending a request body larger than configured limit
+2. Should be rejected with clear error message
+3. Test with responses larger than configured limit
+4. Should handle gracefully
 
-### ✅ Commands
-- [ ] All commands appear in Command Palette
-- [ ] Commands execute without errors
-- [ ] Commands show appropriate messages
+## Feature Testing Checklist
 
-### ✅ Sidebar Views
-- [ ] BunnyAI icon appears in Activity Bar
-- [ ] Requests view is accessible
-- [ ] History view is accessible
-- [ ] Collections view is accessible
+### ✅ Core Features
+- [ ] Extension activates without errors
+- [ ] CodeLens appears above routes
+- [ ] Request Panel opens correctly
+- [ ] HTTP requests execute successfully
+- [ ] Responses display correctly
+- [ ] History is saved and displayed
+- [ ] Collections can be created and managed
+
+### ✅ AI Features (Requires API Key)
+- [ ] Test generation works
+- [ ] Documentation generation works
+- [ ] Error analysis works
+- [ ] API key is stored securely
+- [ ] Rate limiting prevents spam
+
+### ✅ Security Features
+- [ ] Secret Storage works correctly
+- [ ] URL validation rejects invalid protocols
+- [ ] Size limits are enforced
+- [ ] Error messages are user-friendly
+
+### ✅ Performance
+- [ ] CodeLens renders quickly
+- [ ] Parser caching works
+- [ ] Debouncing prevents excessive parsing
+- [ ] Large responses handled gracefully
 
 ### ✅ Error Handling
-- [ ] Extension activates without errors
-- [ ] No errors in Debug Console
-- [ ] Error messages display correctly
+- [ ] Network errors handled gracefully
+- [ ] Invalid URLs handled gracefully
+- [ ] Missing API keys show helpful messages
+- [ ] Extension doesn't crash on errors
 
-### ✅ Logging
-- [ ] Check Output Panel for "BunnyAI Pro" channel
-- [ ] Verify logs appear for actions
-- [ ] Error logs are captured
+## Testing Different Frameworks
+
+### Express.js
+- Basic routes: `app.get('/users', handler)`
+- Route parameters: `app.get('/users/:id', handler)`
+- Template strings: `app.get(\`/users/\${id}\`, handler)`
+- Middleware arrays: `app.get('/users', [auth, handler])`
+- Router instances: `router.get('/posts', handler)` with `app.use('/api', router)`
+
+### NestJS (Basic Support)
+- Controller decorators
+- Route decorators
+
+### FastAPI (Basic Support)
+- Route decorators
+- Path parameters
+
+## Performance Testing
+
+1. Open large TypeScript file with many routes (100+)
+2. Check CodeLens rendering performance
+3. Test with multiple files open simultaneously
+4. Monitor memory usage in VS Code
+5. Test cache effectiveness
+
+## Integration Testing
+
+1. **Test with real API server**:
+   - Start a local Express server
+   - Use CodeLens to run requests
+   - Verify responses match expectations
+
+2. **Test different HTTP methods**:
+   - GET, POST, PUT, PATCH, DELETE
+   - Verify method-specific behavior
+
+3. **Test error scenarios**:
+   - Network failures
+   - Server errors (500)
+   - Client errors (400, 404)
+   - Timeouts
+
+4. **Test middleware chain**:
+   - Auth middleware
+   - Retry middleware
+   - Cache middleware
 
 ## Troubleshooting
 
 ### CodeLens Not Appearing
-1. Make a small edit to the file to trigger re-parsing
+1. Make a small edit to trigger re-parsing
 2. Check Debug Console for errors
-3. Verify file language is TypeScript or JavaScript
+3. Verify file language is TypeScript/JavaScript
 4. Ensure routes follow Express.js pattern
 
 ### Extension Not Activating
@@ -127,30 +180,20 @@ npm test
 2. Verify WebviewManager is initialized
 3. Check browser console (if webview has DevTools)
 
-## Testing Different Frameworks
+### AI Features Not Working
+1. Verify API key is configured using `BunnyAI: Configure AI API Key`
+2. Check API key is valid
+3. Check network connectivity
+4. Review error messages in Debug Console
 
-### Express.js (sample-server.ts)
-- Already included in project
-- Should detect GET and POST routes
+## Test Coverage
 
-### Add More Test Files
-Create test files for:
-- NestJS routes
-- FastAPI routes
-- Flask routes
-- Django routes
+Current test coverage includes:
+- ✅ HTTP Client (URL validation, size limits, timeouts)
+- ✅ API Executor (request execution, error handling)
+- ✅ Middleware (Auth, Retry, Cache)
+- ✅ Config Manager (all configuration options)
+- ✅ Express Parser (various route patterns)
+- ✅ Extension activation
 
-## Performance Testing
-
-1. Open large TypeScript file with many routes
-2. Check CodeLens rendering performance
-3. Test with multiple files open
-4. Monitor memory usage
-
-## Integration Testing
-
-1. Test with real API server running
-2. Test with different HTTP methods
-3. Test with different route patterns
-4. Test error scenarios
-
+See `test/suite/` for all test files.
