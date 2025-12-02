@@ -2,8 +2,8 @@
   "name": "bunnyai-pro",
   "displayName": "BunnyAI Pro",
   "description": "Production-Ready VS Code Extension with Advanced AI & API Tools",
-  "version": "0.0.1",
-  "publisher": "bunnyai",
+  "version": "1.0.1",
+  "publisher": "VishalNandy17",
   "icon": "icon.png",
   "repository": {
     "type": "git",
