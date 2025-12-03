@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/VishalNandy17/BunnyAI?style=flat-square)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 
-**BunnyAI Pro** is a comprehensive, enterprise-grade VS Code extension designed to supercharge your development workflow. Built with a robust TypeScript architecture, it combines advanced AI capabilities with powerful API testing tools, supporting a wide array of modern web frameworks.
+**BunnyAI Pro** is a comprehensive, enterprise-grade VS Code extension designed to supercharge your development workflow. Built with a robust TypeScript architecture, it combines advanced AI capabilities with powerful API testing tools and project-wide code intelligence (complexity analysis, security scanning, architecture insights), supporting a wide array of modern web frameworks.
 
 [![Install from VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-blue?style=for-the-badge&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=VishalNandy17.bunnyai-pro)
 
@@ -48,6 +48,12 @@ Leverage advanced AI to automate tedious development tasks:
   - Step-by-step solutions
   - Prevention tips
 
+- **AI Code Review & Refactoring**: Get AI-powered code reviews and refactoring suggestions
+  - Select code and get instant review feedback
+  - Refactored code suggestions with explanations
+  - Identifies complexity issues and code smells
+  - Command: `BunnyAI: Review & Refactor Selection`
+
 - **Multi-Provider Support**: 
   - **OpenAI** (GPT-4, GPT-3.5-turbo, etc.)
   - **Anthropic** (Claude 3 Opus, Sonnet, etc.)
@@ -58,6 +64,56 @@ Leverage advanced AI to automate tedious development tasks:
   - Automatic migration from settings
   - Rate limiting (500ms minimum between calls)
   - Easy configuration via command palette
+
+### 🧠 Code Intelligence & Security
+Comprehensive code analysis and security scanning capabilities:
+
+- **Code Quality Analyzer**: Analyze code complexity and maintainability
+  - Cyclomatic complexity metrics for functions
+  - Maintainability grades (A-F) based on complexity and nesting
+  - Visual diagnostics highlighting complex code
+  - File-level quality reports with function breakdowns
+  - Command: `BunnyAI: Analyze Code Quality`
+  - **Example**: Select a function and instantly see its complexity score and maintainability grade
+
+- **Multi-Language Comment Remover**: Safely remove comments while preserving code
+  - Supports JavaScript/TypeScript, Python, Java, C/C++, C#, PHP, Go, Rust, HTML/CSS, Shell
+  - Preserves comment-like text inside strings and template literals
+  - Works on selections or entire files
+  - Undo-friendly single operation
+  - Command: `BunnyAI: Remove Comments from Selection`
+  - **Example**: Clean up code before minification or remove outdated comments without breaking strings
+
+- **Security Scanner**: Static analysis for common security vulnerabilities
+  - Detects hardcoded secrets (API keys, tokens, passwords)
+  - Identifies dangerous code patterns (eval, Function constructor, exec)
+  - Flags SQL injection risks (string concatenation, template literals)
+  - Warns about insecure HTTP usage
+  - Highlights weak cryptography (MD5, SHA-1)
+  - XSS risk detection (innerHTML, dangerouslySetInnerHTML)
+  - VS Code diagnostics integration
+  - Command: `BunnyAI: Security Scan File`
+  - **Example**: Scan a file before committing to catch hardcoded API keys or SQL injection risks
+
+- **AI Security Explanations**: Get detailed AI-powered explanations for security issues
+  - Severity justification and risk assessment
+  - Exploitation scenarios explained
+  - Suggested fixes with code examples
+  - Works with security scan results
+  - Command: `BunnyAI: Explain Security Issues (with AI)`
+  - **Example**: After scanning, get AI explanations for why a detected issue is critical and how to fix it
+
+- **Workspace Code Health Dashboard**: Project-wide code health analysis
+  - Recursively scans entire workspace (respects .gitignore)
+  - Aggregates complexity metrics across all files
+  - Identifies top 10 most complex functions
+  - Security issues grouped by severity
+  - Worst offender files highlighted
+  - Interactive webview panel with clickable file navigation
+  - Progress tracking and cancellable scans
+  - Sidebar view showing last scan summary
+  - Command: `BunnyAI: Analyze Workspace Code Health`
+  - **Example**: Run a full workspace scan to identify the most complex files and security hotspots before a code review
 
 ### 🔍 Route Detection & CodeLens Integration
 Intelligent route detection with inline execution:
@@ -146,6 +202,7 @@ Seamless integration with VS Code:
   - **Requests View**: Browse detected API routes
   - **History View**: View request/response history
   - **Collections View**: Manage API collections
+  - **Code Health View**: View last workspace scan summary and run new scans
 
 - **Status Bar**: 
   - Framework detection indicator
@@ -158,6 +215,12 @@ Seamless integration with VS Code:
   - `BunnyAI: Analyze Error` - Analyze selected error
   - `BunnyAI: Generate Documentation` - Generate docs for selected code
   - `BunnyAI: Configure AI API Key` - Securely configure AI API key
+  - `BunnyAI: Analyze Code Quality` - Analyze code quality metrics
+  - `BunnyAI: Review & Refactor Selection` - AI-powered code review and refactoring
+  - `BunnyAI: Remove Comments from Selection` - Remove comments safely
+  - `BunnyAI: Security Scan File` - Scan file for security vulnerabilities
+  - `BunnyAI: Explain Security Issues (with AI)` - Get AI explanations for security issues
+  - `BunnyAI: Analyze Workspace Code Health` - Analyze entire workspace code health
 
 - **Progress Notifications**: Visual feedback for long-running operations
 - **Error Notifications**: User-friendly error messages
@@ -171,6 +234,9 @@ Enterprise-grade security built-in:
 - **Rate Limiting**: Prevents API abuse and accidental rapid-fire requests
 - **Secure Migration**: Automatic migration of API keys from settings to SecretStorage
 - **No Sensitive Data Logging**: API keys never logged or exposed in error messages
+- **Static Security Scanning**: Built-in security scanner detects vulnerabilities before deployment
+- **Security Diagnostics**: VS Code diagnostics integration for security issues
+- **AI-Powered Security Analysis**: Get detailed explanations and fixes for security issues
 
 ### ⚙️ Configuration
 Highly configurable via VS Code settings:
@@ -184,6 +250,10 @@ Highly configurable via VS Code settings:
 - **Size Limits**: Configure request body and response size limits
 - **Framework Detection**: Enable/disable automatic framework detection
 - **CodeLens**: Enable/disable CodeLens for route detection
+- **Security Scanning**: Enable/disable security scanning in workspace analysis
+- **Workspace Scanning**: Enable/disable workspace-level code health scanning
+- **Max Workspace Files**: Maximum files to analyze per workspace scan (default: 10000)
+- **Complexity Thresholds**: Configure high (default: 10) and critical (default: 20) complexity thresholds
 
 ## 📦 Installation
 
@@ -240,6 +310,53 @@ Highly configurable via VS Code settings:
 - **OpenAI**: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 - **Anthropic**: [console.anthropic.com](https://console.anthropic.com/)
 
+### Analyzing Code Quality
+1. Open a TypeScript or JavaScript file.
+2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac).
+3. Run **"BunnyAI: Analyze Code Quality"**.
+4. View complexity metrics and maintainability grades in the Code Quality panel.
+5. See diagnostics highlighting complex functions directly in your editor.
+
+### Reviewing & Refactoring Code
+1. Select the code you want to review.
+2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac).
+3. Run **"BunnyAI: Review & Refactor Selection"**.
+4. Review the AI-generated feedback and refactored code suggestion.
+5. Apply the refactored code if desired.
+
+**Note**: Requires AI API key configuration (see above).
+
+### Removing Comments
+1. Select code with comments (or leave unselected to process entire file).
+2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac).
+3. Run **"BunnyAI: Remove Comments from Selection"**.
+4. Comments are removed while preserving strings and template literals.
+5. Use undo (`Ctrl+Z`) if needed.
+
+### Scanning for Security Issues
+1. Open a file you want to scan.
+2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac).
+3. Run **"BunnyAI: Security Scan File"**.
+4. View security issues as VS Code diagnostics.
+5. Check the output channel for detailed issue information.
+6. (Optional) Run **"BunnyAI: Explain Security Issues (with AI)"** for detailed explanations.
+
+**Note**: AI explanations require AI API key configuration.
+
+### Analyzing Workspace Code Health
+1. Open a workspace folder.
+2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac).
+3. Run **"BunnyAI: Analyze Workspace Code Health"**.
+4. Choose whether to include security scanning.
+5. Monitor progress (scan can be cancelled).
+6. View results in the interactive dashboard:
+   - Summary metrics (files scanned, average complexity, security issues)
+   - Worst offender files (highest complexity)
+   - Top 10 most complex functions
+   - Security issues grouped by severity
+7. Click any file or function to navigate directly to it.
+8. View last scan summary in the Code Health sidebar view.
+
 ## 🔒 Security Considerations
 
 ### API Key Storage
@@ -280,6 +397,10 @@ Open VS Code Settings (`Ctrl+,`) and search for "BunnyAI" to configure:
 - **Size Limits**: Configure request body and response size limits
 - **Framework Detection**: Enable/disable automatic framework detection
 - **CodeLens**: Enable/disable CodeLens for route detection
+- **Security Scanning**: Enable/disable security scanning (default: enabled)
+- **Workspace Scanning**: Enable/disable workspace code health scanning (default: enabled)
+- **Max Workspace Files**: Maximum files to analyze per scan (default: 10000)
+- **Complexity Thresholds**: High complexity (default: 10) and critical (default: 20) thresholds
 
 See [HOW_TO_RUN.md](HOW_TO_RUN.md) for detailed configuration instructions.
 

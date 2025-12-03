@@ -17,4 +17,24 @@ suite('Extension Test Suite', () => {
         await vscode.commands.executeCommand('bunnyai.reviewAndRefactorSelection');
         assert.ok(true);
     });
+
+    test('Code Quality command is registered and safe', async () => {
+        await vscode.commands.executeCommand('bunnyai.analyzeCodeQuality');
+        assert.ok(true);
+    });
+
+    test('Remove Comments command is registered and safe', async () => {
+        await vscode.commands.executeCommand('bunnyai.removeComments');
+        assert.ok(true);
+    });
+
+    test('Security Scan command is registered and safe', async () => {
+        await vscode.commands.executeCommand('bunnyai.securityScanFile');
+        assert.ok(true);
+    });
+
+    test('Workspace Code Health command is registered and safe', async () => {
+        await vscode.commands.executeCommand('bunnyai.analyzeWorkspaceCodeHealth');
+        assert.ok(true);
+    });
 });

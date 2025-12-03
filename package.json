@@ -49,27 +49,74 @@
       {
         "command": "bunnyai.analyzeCodeQuality",
         "title": "Analyze Code Quality",
-        "category": "BunnyAI"
+        "category": "BunnyAI",
+        "description": "Analyze code quality metrics (complexity, maintainability) for the current file"
       },
       {
         "command": "bunnyai.reviewAndRefactorSelection",
         "title": "Review & Refactor Selection",
-        "category": "BunnyAI"
+        "category": "BunnyAI",
+        "description": "AI-powered code review and refactoring for selected code"
       },
       {
         "command": "bunnyai.removeComments",
         "title": "Remove Comments from Selection",
-        "category": "BunnyAI"
+        "category": "BunnyAI",
+        "description": "Remove comments from selected code or entire file (preserves strings)"
       },
       {
         "command": "bunnyai.securityScanFile",
         "title": "Security Scan File",
-        "category": "BunnyAI"
+        "category": "BunnyAI",
+        "description": "Scan current file for security vulnerabilities (hardcoded secrets, SQL injection, etc.)"
       },
       {
         "command": "bunnyai.explainSecurityIssues",
         "title": "Explain Security Issues (with AI)",
-        "category": "BunnyAI"
+        "category": "BunnyAI",
+        "description": "Get AI-powered explanations for security issues found in the last scan"
+      },
+      {
+        "command": "bunnyai.analyzeWorkspaceCodeHealth",
+        "title": "Analyze Workspace Code Health",
+        "category": "BunnyAI",
+        "description": "Analyze code health across the entire workspace (complexity, security, quality metrics)"
+      },
+      {
+        "command": "bunnyai.reviewPullRequest",
+        "title": "Review Pull Request",
+        "category": "BunnyAI",
+        "description": "AI-powered code review for GitHub Pull Requests"
+      },
+      {
+        "command": "bunnyai.configureGitHubToken",
+        "title": "Configure GitHub Token",
+        "category": "BunnyAI",
+        "description": "Configure GitHub personal access token for PR reviews"
+      },
+      {
+        "command": "bunnyai.analyzeLogs",
+        "title": "Analyze Logs",
+        "category": "BunnyAI",
+        "description": "Parse and analyze runtime logs (Node.js, Python, Java, Go, Docker)"
+      },
+      {
+        "command": "bunnyai.diagnoseRuntimeError",
+        "title": "Diagnose Runtime Error",
+        "category": "BunnyAI",
+        "description": "Get AI-powered diagnosis for a runtime error from logs"
+      },
+      {
+        "command": "bunnyai.generateArchitectureOverview",
+        "title": "Generate Architecture Overview",
+        "category": "BunnyAI",
+        "description": "Analyze workspace and generate architecture documentation with diagrams"
+      },
+      {
+        "command": "bunnyai.exportArchitectureDocs",
+        "title": "Export Architecture Docs",
+        "category": "BunnyAI",
+        "description": "Export architecture documentation to Markdown files"
       }
     ],
     "viewsContainers": {
@@ -94,6 +141,10 @@
         {
           "id": "bunnyai.views.collections",
           "name": "Collections"
+        },
+        {
+          "id": "bunnyai.views.codeHealth",
+          "name": "Code Health"
         }
       ]
     },
@@ -170,6 +221,31 @@
           "type": "number",
           "default": 10485760,
           "description": "Maximum response size in bytes (default 10 MB)"
+        },
+        "bunnyai.enableSecurityScanning": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable security scanning in workspace analysis"
+        },
+        "bunnyai.enableWorkspaceScanning": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable workspace-level code health scanning"
+        },
+        "bunnyai.maxWorkspaceFiles": {
+          "type": "number",
+          "default": 10000,
+          "description": "Maximum number of files to analyze per workspace scan"
+        },
+        "bunnyai.highComplexityThreshold": {
+          "type": "number",
+          "default": 10,
+          "description": "Cyclomatic complexity threshold for highlighting high complexity functions"
+        },
+        "bunnyai.criticalComplexityThreshold": {
+          "type": "number",
+          "default": 20,
+          "description": "Cyclomatic complexity threshold for critical complexity warnings"
         }
       }
     }

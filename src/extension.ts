@@ -16,6 +16,18 @@ import { CodeQualityPanel } from './webview/panels/CodeQualityPanel';
 import { AIProvider } from './ai/AIProvider';
 import { removeComments } from './analysis/commentRemover';
 import { scanSecurity, SecurityScanResult, SecurityIssue } from './analysis/securityScanner';
+import { WorkspaceAnalyzer } from './analysis/workspaceAnalyzer';
+import { WorkspaceHealthPanel } from './webview/panels/WorkspaceHealthPanel';
+import { GitHubAPI } from './integrations/github';
+import { AIPRReviewer } from './ai/AIPRReviewer';
+import { PRReviewPanel } from './webview/panels/PRReviewPanel';
+import { LogParser } from './runtime/logParser';
+import { AIRuntimeDiagnoser } from './ai/AIRuntimeDiagnoser';
+import { RuntimeDiagnosticsPanel } from './webview/panels/RuntimeDiagnosticsPanel';
+import { ArchitectureScanner } from './architecture/scanner';
+import { DiagramGenerator } from './architecture/diagramGenerator';
+import { ArchitectureExporter } from './architecture/exporter';
+import { ArchitectureExplorerPanel } from './webview/panels/ArchitectureExplorerPanel';
 
 let statusBarItem: vscode.StatusBarItem;
 let statusBarBaseTooltip = '';
@@ -615,6 +627,527 @@ Provide a clear, actionable analysis for each issue.`;
                 } catch (error) {
                     Logger.error('Failed to explain security issues', error);
                     vscode.window.showErrorMessage('Failed to explain security issues. Check output for details.');
+                }
+            }),
+            vscode.commands.registerCommand('bunnyai.analyzeWorkspaceCodeHealth', async () => {
+                try {
+                    const configManager = ConfigManager.getInstance();
+                    
+                    // Check if workspace scanning is enabled
+                    if (!configManager.isWorkspaceScanningEnabled()) {
+                        vscode.window.showWarningMessage(
+                            'Workspace scanning is disabled. Enable it in settings (bunnyai.enableWorkspaceScanning).'
+                        );
+                        return;
+                    }
+
+                    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                    if (!workspaceFolder) {
+                        vscode.window.showWarningMessage('No workspace folder open. Open a folder to analyze.');
+                        return;
+                    }
+
+                    // Use config default for security scanning, but allow override
+                    const defaultIncludeSecurity = configManager.isSecurityScanningEnabled();
+                    const includeSecurity = await vscode.window.showQuickPick(
+                        [
+                            { label: 'Yes', value: true, description: 'Include security scanning' },
+                            { label: 'No', value: false, description: 'Code quality only' }
+                        ],
+                        {
+                            placeHolder: `Include security scanning? (default: ${defaultIncludeSecurity ? 'Yes' : 'No'})`
+                        }
+                    );
+
+                    if (includeSecurity === undefined) {
+                        return; // User cancelled
+                    }
+
+                    const analyzer = new WorkspaceAnalyzer();
+
+                    await vscode.window.withProgress(
+                        {
+                            location: vscode.ProgressLocation.Notification,
+                            title: 'Analyzing Workspace Code Health',
+                            cancellable: true
+                        },
+                        async (progress, cancellationToken) => {
+                            try {
+                                progress.report({ increment: 0, message: 'Scanning workspace files...' });
+
+                                const report = await analyzer.analyzeWorkspace(
+                                    workspaceFolder,
+                                    includeSecurity.value,
+                                    {
+                                        report: (value) => {
+                                            progress.report(value);
+                                        }
+                                    },
+                                    cancellationToken
+                                );
+
+                                if (cancellationToken.isCancellationRequested) {
+                                    vscode.window.showInformationMessage('Workspace analysis cancelled.');
+                                    return;
+                                }
+
+                                progress.report({ increment: 100, message: 'Analysis complete!' });
+
+                                // Show the results panel
+                                WorkspaceHealthPanel.show(context.extensionUri, report);
+
+                                // Update code health tree view
+                                const codeHealthProvider = core.getCodeHealthTreeProvider();
+                                codeHealthProvider.updateReport(report);
+
+                                const issueCount = report.summary.totalSecurityIssues;
+                                const complexity = report.summary.averageCyclomaticComplexity;
+                                vscode.window.showInformationMessage(
+                                    `Analysis complete! Scanned ${report.summary.filesScanned} files. ` +
+                                    `Avg complexity: ${complexity.toFixed(2)}, ` +
+                                    `Security issues: ${issueCount}`
+                                );
+                            } catch (error) {
+                                Logger.error('Failed to analyze workspace', error);
+                                vscode.window.showErrorMessage(
+                                    `Failed to analyze workspace: ${error instanceof Error ? error.message : 'Unknown error'}`
+                                );
+                            }
+                        }
+                    );
+                } catch (error) {
+                    Logger.error('Failed to start workspace analysis', error);
+                    vscode.window.showErrorMessage('Failed to start workspace analysis. Check output for details.');
+                }
+            }),
+            vscode.commands.registerCommand('bunnyai.configureGitHubToken', async () => {
+                try {
+                    const secretStorage = SecretStorage.getInstance();
+                    const existingToken = await secretStorage.get('bunnyai.githubToken');
+
+                    const token = await vscode.window.showInputBox({
+                        prompt: 'Enter your GitHub Personal Access Token',
+                        placeHolder: 'ghp_...',
+                        password: true,
+                        value: existingToken || '',
+                        ignoreFocusOut: true
+                    });
+
+                    if (!token) {
+                        return;
+                    }
+
+                    await secretStorage.set('bunnyai.githubToken', token);
+                    vscode.window.showInformationMessage('GitHub token saved securely.');
+                } catch (error) {
+                    Logger.error('Failed to configure GitHub token', error);
+                    vscode.window.showErrorMessage('Failed to configure GitHub token. Check output for details.');
+                }
+            }),
+            vscode.commands.registerCommand('bunnyai.reviewPullRequest', async () => {
+                try {
+                    const secretStorage = SecretStorage.getInstance();
+                    let githubToken = await secretStorage.get('bunnyai.githubToken');
+
+                    if (!githubToken) {
+                        const configure = await vscode.window.showWarningMessage(
+                            'GitHub token not configured. Configure it now?',
+                            'Configure',
+                            'Cancel'
+                        );
+                        if (configure === 'Configure') {
+                            await vscode.commands.executeCommand('bunnyai.configureGitHubToken');
+                            githubToken = await secretStorage.get('bunnyai.githubToken');
+                            if (!githubToken) {
+                                return;
+                            }
+                        } else {
+                            return;
+                        }
+                    }
+
+                    // Get repository info
+                    const repoInput = await vscode.window.showInputBox({
+                        prompt: 'Enter GitHub repository (owner/repo)',
+                        placeHolder: 'owner/repo',
+                        ignoreFocusOut: true
+                    });
+
+                    if (!repoInput) {
+                        return;
+                    }
+
+                    const [owner, repo] = repoInput.split('/');
+                    if (!owner || !repo) {
+                        vscode.window.showErrorMessage('Invalid repository format. Use owner/repo');
+                        return;
+                    }
+
+                    // Get PR number
+                    const prNumberInput = await vscode.window.showInputBox({
+                        prompt: 'Enter Pull Request number',
+                        placeHolder: '123',
+                        ignoreFocusOut: true
+                    });
+
+                    if (!prNumberInput) {
+                        return;
+                    }
+
+                    const prNumber = parseInt(prNumberInput, 10);
+                    if (isNaN(prNumber) || prNumber <= 0) {
+                        vscode.window.showErrorMessage('Invalid PR number');
+                        return;
+                    }
+
+                    const githubAPI = new GitHubAPI(githubToken);
+
+                    // Test connection
+                    const isValid = await githubAPI.testConnection();
+                    if (!isValid) {
+                        vscode.window.showErrorMessage('Invalid GitHub token. Please reconfigure.');
+                        return;
+                    }
+
+                    await vscode.window.withProgress(
+                        {
+                            location: vscode.ProgressLocation.Notification,
+                            title: 'Reviewing Pull Request',
+                            cancellable: true
+                        },
+                        async (progress, cancellationToken) => {
+                            try {
+                                progress.report({ increment: 0, message: 'Fetching PR details...' });
+
+                                // Fetch PR and files
+                                const [pr, files] = await Promise.all([
+                                    githubAPI.getPR(owner, repo, prNumber),
+                                    githubAPI.getPRFiles(owner, repo, prNumber)
+                                ]);
+
+                                if (cancellationToken.isCancellationRequested) {
+                                    return;
+                                }
+
+                                progress.report({ increment: 30, message: 'Generating AI review...' });
+
+                                // Generate review
+                                const reviewer = new AIPRReviewer();
+                                const reviewResult = await reviewer.reviewPR(pr, files);
+
+                                if (cancellationToken.isCancellationRequested) {
+                                    return;
+                                }
+
+                                progress.report({ increment: 100, message: 'Review complete!' });
+
+                                // Show review panel
+                                PRReviewPanel.show(
+                                    context.extensionUri,
+                                    reviewResult,
+                                    githubAPI,
+                                    owner,
+                                    repo,
+                                    prNumber
+                                );
+
+                                vscode.window.showInformationMessage(
+                                    `PR Review complete! Found ${reviewResult.totalFindings} issue(s) across ${reviewResult.filesReviewed} file(s).`
+                                );
+                            } catch (error) {
+                                Logger.error('Failed to review PR', error);
+                                vscode.window.showErrorMessage(
+                                    `Failed to review PR: ${error instanceof Error ? error.message : 'Unknown error'}`
+                                );
+                            }
+                        }
+                    );
+                } catch (error) {
+                    Logger.error('Failed to start PR review', error);
+                    vscode.window.showErrorMessage('Failed to start PR review. Check output for details.');
+                }
+            }),
+            vscode.commands.registerCommand('bunnyai.analyzeLogs', async () => {
+                try {
+                    const logFiles = await vscode.window.showOpenDialog({
+                        canSelectFiles: true,
+                        canSelectFolders: false,
+                        canSelectMany: false,
+                        filters: {
+                            'Log Files': ['log', 'txt', 'out'],
+                            'All Files': ['*']
+                        },
+                        title: 'Select Log File to Analyze'
+                    });
+
+                    if (!logFiles || logFiles.length === 0) {
+                        return;
+                    }
+
+                    const logFile = logFiles[0];
+                    const parser = new LogParser();
+
+                    await vscode.window.withProgress(
+                        {
+                            location: vscode.ProgressLocation.Notification,
+                            title: 'Analyzing Log File',
+                            cancellable: false
+                        },
+                        async (progress) => {
+                            progress.report({ increment: 0, message: 'Parsing log file...' });
+
+                            const parsedLog = parser.parseLogFile(logFile.fsPath);
+
+                            progress.report({ increment: 100, message: 'Analysis complete!' });
+
+                            // Show summary
+                            const summary = parsedLog.summary;
+                            const message = `Found ${summary.totalErrors} error(s), ${summary.totalWarnings} warning(s), ${summary.uniqueErrors} unique error(s)`;
+                            vscode.window.showInformationMessage(message);
+
+                            // If there are errors, show the first one in diagnostics panel
+                            if (parsedLog.errors.length > 0) {
+                                const firstError = parsedLog.errors[0];
+                                
+                                // Try to find workspace file
+                                const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                                let workspaceFile: any = null;
+                                if (workspaceFolder) {
+                                    workspaceFile = parser.findWorkspaceFile(
+                                        firstError.stackFrames,
+                                        workspaceFolder.uri.fsPath
+                                    );
+                                }
+
+                                // Auto-open file if found
+                                if (workspaceFile && workspaceFile.file && workspaceFile.line) {
+                                    try {
+                                        const uri = vscode.Uri.file(workspaceFile.file);
+                                        const document = await vscode.workspace.openTextDocument(uri);
+                                        const editor = await vscode.window.showTextDocument(document);
+                                        const position = new vscode.Position(workspaceFile.line - 1, 0);
+                                        editor.selection = new vscode.Selection(position, position);
+                                        editor.revealRange(
+                                            new vscode.Range(position, position),
+                                            vscode.TextEditorRevealType.InCenter
+                                        );
+                                    } catch (error) {
+                                        Logger.error('Failed to open file', error);
+                                    }
+                                }
+
+                                // Show diagnostics panel
+                                RuntimeDiagnosticsPanel.show(context.extensionUri, {
+                                    error: firstError,
+                                    filePath: workspaceFile?.file
+                                });
+                            } else {
+                                vscode.window.showInformationMessage('No errors found in log file.');
+                            }
+                        }
+                    );
+                } catch (error) {
+                    Logger.error('Failed to analyze logs', error);
+                    vscode.window.showErrorMessage(`Failed to analyze logs: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
+            }),
+            vscode.commands.registerCommand('bunnyai.diagnoseRuntimeError', async () => {
+                try {
+                    const editor = vscode.window.activeTextEditor;
+                    if (!editor) {
+                        vscode.window.showWarningMessage('No active editor. Please open a log file or select an error.');
+                        return;
+                    }
+
+                    const document = editor.document;
+                    const selection = editor.selection;
+                    const selectedText = document.getText(selection);
+
+                    // If no selection, use entire document
+                    const textToAnalyze = selectedText || document.getText();
+                    
+                    const parser = new LogParser();
+                    const parsedLog = parser.parseLogContent(textToAnalyze, document.fileName);
+
+                    if (parsedLog.errors.length === 0) {
+                        vscode.window.showWarningMessage('No errors found in the selected text or file.');
+                        return;
+                    }
+
+                    const error = parsedLog.errors[0]; // Use first error
+                    const diagnoser = new AIRuntimeDiagnoser();
+
+                    // Try to find and load source code
+                    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                    let sourceCode: string | undefined;
+                    let sourceFilePath: string | undefined;
+
+                    if (workspaceFolder && error.stackFrames.length > 0) {
+                        const workspaceFile = parser.findWorkspaceFile(
+                            error.stackFrames,
+                            workspaceFolder.uri.fsPath
+                        );
+                        
+                        if (workspaceFile && workspaceFile.file) {
+                            sourceFilePath = workspaceFile.file;
+                            sourceCode = await diagnoser.loadSourceCode(workspaceFile.file);
+                        }
+                    }
+
+                    await vscode.window.withProgress(
+                        {
+                            location: vscode.ProgressLocation.Notification,
+                            title: 'Diagnosing Runtime Error',
+                            cancellable: false
+                        },
+                        async (progress) => {
+                            progress.report({ increment: 0, message: 'Analyzing error with AI...' });
+
+                            const diagnosis = await diagnoser.diagnoseError(
+                                error,
+                                sourceCode,
+                                sourceFilePath
+                            );
+
+                            progress.report({ increment: 100, message: 'Diagnosis complete!' });
+
+                            // Show diagnostics panel with diagnosis
+                            RuntimeDiagnosticsPanel.show(context.extensionUri, {
+                                error,
+                                diagnosis,
+                                sourceCode,
+                                filePath: sourceFilePath
+                            });
+
+                            vscode.window.showInformationMessage(
+                                `Diagnosis complete! Confidence: ${diagnosis.confidence}`
+                            );
+                        }
+                    );
+                } catch (error: any) {
+                    Logger.error('Failed to diagnose runtime error', error);
+                    if (error.message && error.message.includes('AI API key')) {
+                        vscode.window.showErrorMessage('AI API key not configured. Use "BunnyAI: Configure AI API Key" to set it up.');
+                    } else {
+                        vscode.window.showErrorMessage(`Failed to diagnose error: ${error.message || 'Unknown error'}`);
+                    }
+                }
+            }),
+            vscode.commands.registerCommand('bunnyai.generateArchitectureOverview', async () => {
+                try {
+                    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                    if (!workspaceFolder) {
+                        vscode.window.showWarningMessage('No workspace folder open. Open a folder to analyze.');
+                        return;
+                    }
+
+                    const scanner = new ArchitectureScanner();
+                    const diagramGenerator = new DiagramGenerator();
+
+                    await vscode.window.withProgress(
+                        {
+                            location: vscode.ProgressLocation.Notification,
+                            title: 'Generating Architecture Overview',
+                            cancellable: true
+                        },
+                        async (progress, cancellationToken) => {
+                            try {
+                                progress.report({ increment: 0, message: 'Scanning workspace...' });
+
+                                const model = await scanner.scanWorkspace(workspaceFolder);
+
+                                if (cancellationToken.isCancellationRequested) {
+                                    return;
+                                }
+
+                                progress.report({ increment: 50, message: 'Generating diagrams and documentation...' });
+
+                                const documentation = await diagramGenerator.generateDocumentation(model);
+
+                                if (cancellationToken.isCancellationRequested) {
+                                    return;
+                                }
+
+                                progress.report({ increment: 100, message: 'Complete!' });
+
+                                // Show architecture explorer panel
+                                ArchitectureExplorerPanel.show(
+                                    context.extensionUri,
+                                    model,
+                                    documentation
+                                );
+
+                                vscode.window.showInformationMessage(
+                                    `Architecture overview generated! Found ${model.modules.length} modules, ${model.components.length} components.`
+                                );
+                            } catch (error) {
+                                Logger.error('Failed to generate architecture overview', error);
+                                vscode.window.showErrorMessage(
+                                    `Failed to generate architecture overview: ${error instanceof Error ? error.message : 'Unknown error'}`
+                                );
+                            }
+                        }
+                    );
+                } catch (error) {
+                    Logger.error('Failed to start architecture analysis', error);
+                    vscode.window.showErrorMessage('Failed to start architecture analysis. Check output for details.');
+                }
+            }),
+            vscode.commands.registerCommand('bunnyai.exportArchitectureDocs', async () => {
+                try {
+                    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                    if (!workspaceFolder) {
+                        vscode.window.showWarningMessage('No workspace folder open.');
+                        return;
+                    }
+
+                    const scanner = new ArchitectureScanner();
+                    const diagramGenerator = new DiagramGenerator();
+                    const exporter = new ArchitectureExporter();
+
+                    await vscode.window.withProgress(
+                        {
+                            location: vscode.ProgressLocation.Notification,
+                            title: 'Exporting Architecture Documentation',
+                            cancellable: false
+                        },
+                        async (progress) => {
+                            progress.report({ increment: 0, message: 'Scanning workspace...' });
+
+                            const model = await scanner.scanWorkspace(workspaceFolder);
+
+                            progress.report({ increment: 50, message: 'Generating documentation...' });
+
+                            const documentation = await diagramGenerator.generateDocumentation(model);
+
+                            progress.report({ increment: 80, message: 'Exporting files...' });
+
+                            const markdownPath = await exporter.exportToMarkdown(
+                                workspaceFolder.uri.fsPath,
+                                model,
+                                documentation
+                            );
+
+                            progress.report({ increment: 100, message: 'Complete!' });
+
+                            const openFile = await vscode.window.showInformationMessage(
+                                `Architecture documentation exported to architecture/ folder.`,
+                                'Open File'
+                            );
+
+                            if (openFile === 'Open File') {
+                                const uri = vscode.Uri.file(markdownPath);
+                                await vscode.window.showTextDocument(uri);
+                            }
+                        }
+                    );
+                } catch (error: any) {
+                    Logger.error('Failed to export architecture docs', error);
+                    if (error.message && error.message.includes('AI API key')) {
+                        vscode.window.showErrorMessage('AI API key not configured. Use "BunnyAI: Configure AI API Key" to set it up.');
+                    } else {
+                        vscode.window.showErrorMessage(`Failed to export architecture docs: ${error.message || 'Unknown error'}`);
+                    }
                 }
             })
         );

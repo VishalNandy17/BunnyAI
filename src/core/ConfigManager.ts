@@ -15,6 +15,11 @@ export interface ExtensionConfig {
     enableCodeLens?: boolean;
     maxRequestBodySize?: number;
     maxResponseSize?: number;
+    enableSecurityScanning?: boolean;
+    enableWorkspaceScanning?: boolean;
+    maxWorkspaceFiles?: number;
+    highComplexityThreshold?: number;
+    criticalComplexityThreshold?: number;
 }
 
 export class ConfigManager {
@@ -59,7 +64,12 @@ export class ConfigManager {
             autoDetectFramework: this.config.get<boolean>('autoDetectFramework', true),
             enableCodeLens: this.config.get<boolean>('enableCodeLens', true),
             maxRequestBodySize: this.config.get<number>('maxRequestBodySize', 1024 * 1024), // 1 MB
-            maxResponseSize: this.config.get<number>('maxResponseSize', 10 * 1024 * 1024) // 10 MB
+            maxResponseSize: this.config.get<number>('maxResponseSize', 10 * 1024 * 1024), // 10 MB
+            enableSecurityScanning: this.config.get<boolean>('enableSecurityScanning', true),
+            enableWorkspaceScanning: this.config.get<boolean>('enableWorkspaceScanning', true),
+            maxWorkspaceFiles: this.config.get<number>('maxWorkspaceFiles', 10000),
+            highComplexityThreshold: this.config.get<number>('highComplexityThreshold', 10),
+            criticalComplexityThreshold: this.config.get<number>('criticalComplexityThreshold', 20)
         };
     }
 
@@ -130,6 +140,26 @@ export class ConfigManager {
 
     getMaxResponseSize(): number {
         return this.getConfig().maxResponseSize || 10 * 1024 * 1024;
+    }
+
+    isSecurityScanningEnabled(): boolean {
+        return this.getConfig().enableSecurityScanning !== false;
+    }
+
+    isWorkspaceScanningEnabled(): boolean {
+        return this.getConfig().enableWorkspaceScanning !== false;
+    }
+
+    getMaxWorkspaceFiles(): number {
+        return this.getConfig().maxWorkspaceFiles || 10000;
+    }
+
+    getHighComplexityThreshold(): number {
+        return this.getConfig().highComplexityThreshold || 10;
+    }
+
+    getCriticalComplexityThreshold(): number {
+        return this.getConfig().criticalComplexityThreshold || 20;
     }
 }
 

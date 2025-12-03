@@ -5,6 +5,7 @@ import { WebviewManager } from '../webview/WebviewManager';
 import { HistoryTreeProvider } from '../providers/HistoryTreeProvider';
 import { CollectionProvider } from '../providers/CollectionProvider';
 import { RouteTreeDataProvider } from '../providers/RouteTreeDataProvider';
+import { CodeHealthTreeProvider } from '../providers/CodeHealthTreeProvider';
 
 export class ExtensionCore {
     private static instance: ExtensionCore;
@@ -13,6 +14,7 @@ export class ExtensionCore {
     private historyTreeProvider: HistoryTreeProvider;
     private collectionProvider: CollectionProvider;
     private routeTreeProvider: RouteTreeDataProvider;
+    private codeHealthTreeProvider: CodeHealthTreeProvider;
 
     private constructor(context: vscode.ExtensionContext) {
         this.context = context;
@@ -20,6 +22,7 @@ export class ExtensionCore {
         this.historyTreeProvider = new HistoryTreeProvider();
         this.collectionProvider = new CollectionProvider();
         this.routeTreeProvider = new RouteTreeDataProvider();
+        this.codeHealthTreeProvider = new CodeHealthTreeProvider();
     }
 
     public static initialize(context: vscode.ExtensionContext): ExtensionCore {
@@ -61,6 +64,9 @@ export class ExtensionCore {
                 }),
                 vscode.window.createTreeView('bunnyai.views.requests', {
                     treeDataProvider: this.routeTreeProvider
+                }),
+                vscode.window.createTreeView('bunnyai.views.codeHealth', {
+                    treeDataProvider: this.codeHealthTreeProvider
                 })
             );
 
@@ -87,6 +93,10 @@ export class ExtensionCore {
 
     public getCollectionProvider(): CollectionProvider {
         return this.collectionProvider;
+    }
+
+    public getCodeHealthTreeProvider(): CodeHealthTreeProvider {
+        return this.codeHealthTreeProvider;
     }
 
     public deactivate() {
