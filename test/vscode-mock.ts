@@ -1,4 +1,6 @@
 // Mock vscode module for unit tests
+const registeredCommands: Record<string, (...args: any[]) => any> = {};
+
 export const window = {
     showInformationMessage: (message: string) => {
         console.log(`[MOCK] showInformationMessage: ${message}`);
@@ -40,14 +42,37 @@ export const window = {
         reveal: () => {},
         dispose: () => {},
         onDidDispose: { dispose: () => {} }
-    })
+    }),
+    withProgress: (_options: any, task: (progress: any, token: any) => Thenable<any>) => {
+        const progress = { report: (_value: any) => {} };
+        const token = { isCancellationRequested: false };
+        return task(progress, token);
+    },
+    showQuickPick: (items: string[] | Thenable<string[]>, _options?: any) => {
+        if (Array.isArray(items) && items.length > 0) {
+            return Promise.resolve(items[0]);
+        }
+        return Promise.resolve(undefined);
+    }
 };
 
 export const commands = {
     registerCommand: (command: string, callback: (...args: any[]) => any) => {
-        return { dispose: () => {} };
+        registeredCommands[command] = callback;
+        return {
+            dispose: () => {
+                delete registeredCommands[command];
+            }
+        };
     },
-    executeCommand: () => Promise.resolve(undefined)
+    executeCommand: (command: string, ...args: any[]) => {
+        const handler = registeredCommands[command];
+        if (handler) {
+            return Promise.resolve(handler(...args));
+        }
+        return Promise.resolve(undefined);
+    },
+    getCommands: () => Promise.resolve(Object.keys(registeredCommands))
 };
 
 export const languages = {
@@ -135,6 +160,17 @@ export const StatusBarAlignment = {
     Left: 1,
     Right: 2
 };
+
+export class TreeItem {
+    label: string;
+    collapsibleState: any;
+    contextValue?: string;
+
+    constructor(label: string, collapsibleState: any) {
+        this.label = label;
+        this.collapsibleState = collapsibleState;
+    }
+}
 
 export class EventEmitter {
     private listeners: Array<() => void> = [];

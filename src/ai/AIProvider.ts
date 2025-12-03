@@ -73,6 +73,43 @@ export class AIProvider implements IAIProvider {
         }
     }
 
+    async reviewAndRefactor(code: string, languageId?: string, context?: string): Promise<string> {
+        try {
+            const provider = this.configManager.getAIProvider();
+            const apiKey = await this.getApiKey();
+            const model = this.configManager.getAIModel() || 'gpt-4';
+
+            if (!apiKey) {
+                throw new Error('AI API key not configured. Please set bunnyai.aiApiKey in settings.');
+            }
+
+            const prompt = this.buildReviewRefactorPrompt(code, languageId, context);
+            const response = await this.callAI(provider, apiKey, model, prompt);
+            return response;
+        } catch (error: any) {
+            Logger.error('Failed to review and refactor code', error);
+            throw new Error(`Failed to review and refactor code: ${error.message}`);
+        }
+    }
+
+    async explainSecurityIssues(prompt: string): Promise<string> {
+        try {
+            const provider = this.configManager.getAIProvider();
+            const apiKey = await this.getApiKey();
+            const model = this.configManager.getAIModel() || 'gpt-4';
+
+            if (!apiKey) {
+                throw new Error('AI API key not configured. Please set bunnyai.aiApiKey in settings.');
+            }
+
+            const response = await this.callAI(provider, apiKey, model, prompt);
+            return response;
+        } catch (error: any) {
+            Logger.error('Failed to explain security issues', error);
+            throw new Error(`Failed to explain security issues: ${error.message}`);
+        }
+    }
+
     private async callAI(provider: string, apiKey: string, model: string, prompt: string): Promise<string> {
         switch (provider) {
             case 'openai':
@@ -278,6 +315,40 @@ ${error}
 \`\`\`
 
 Provide a detailed analysis with actionable solutions.`;
+    }
+
+    private buildReviewRefactorPrompt(code: string, languageId?: string, context?: string): string {
+        const languageHint = languageId ? `Language: ${languageId}\n` : '';
+        const contextSection = context
+            ? `
+Surrounding context (may contain additional functions or helpers):
+\`\`\`
+${context}
+\`\`\`
+`
+            : '';
+
+        return `You are an expert software engineer reviewing code inside a VS Code extension.
+${languageHint}
+Review the following code selection and then propose a refactored version that:
+- Preserves behavior exactly
+- Improves readability and structure
+- Reduces complexity and nesting where reasonable
+- Avoids introducing new dependencies
+
+Respond strictly in the following format:
+[REVIEW]
+<short bullet-point review of issues, smells, complexity and security concerns>
+[/REVIEW]
+[REFACTOR]
+<full refactored code snippet only, without commentary>
+[/REFACTOR]
+
+Code selection:
+\`\`\`
+${code}
+\`\`\`
+${contextSection}`;
     }
 }
 

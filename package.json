@@ -45,6 +45,31 @@
         "command": "bunnyai.configureApiKey",
         "title": "Configure AI API Key",
         "category": "BunnyAI"
+      },
+      {
+        "command": "bunnyai.analyzeCodeQuality",
+        "title": "Analyze Code Quality",
+        "category": "BunnyAI"
+      },
+      {
+        "command": "bunnyai.reviewAndRefactorSelection",
+        "title": "Review & Refactor Selection",
+        "category": "BunnyAI"
+      },
+      {
+        "command": "bunnyai.removeComments",
+        "title": "Remove Comments from Selection",
+        "category": "BunnyAI"
+      },
+      {
+        "command": "bunnyai.securityScanFile",
+        "title": "Security Scan File",
+        "category": "BunnyAI"
+      },
+      {
+        "command": "bunnyai.explainSecurityIssues",
+        "title": "Explain Security Issues (with AI)",
+        "category": "BunnyAI"
       }
     ],
     "viewsContainers": {
