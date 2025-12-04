@@ -8,7 +8,9 @@ suite('HTTP Client Test Suite', () => {
         httpClient = new HttpClient();
     });
 
-    test('Should validate URL protocol - http allowed', async () => {
+    test('Should validate URL protocol - http allowed', async function() {
+        // Allow extra time in case external HTTP endpoint is slow or unreachable
+        this.timeout(8000);
         try {
             await httpClient.get('http://example.com');
             // If no error, that's fine - we're just testing validation

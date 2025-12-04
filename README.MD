@@ -7,7 +7,16 @@
 [![License](https://img.shields.io/github/license/VishalNandy17/BunnyAI?style=flat-square)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 
-**BunnyAI Pro** is a comprehensive, enterprise-grade VS Code extension designed to supercharge your development workflow. Built with a robust TypeScript architecture, it combines advanced AI capabilities with powerful API testing tools and project-wide code intelligence (complexity analysis, security scanning, architecture insights), supporting a wide array of modern web frameworks.
+**BunnyAI Pro** is a comprehensive, enterprise-grade VS Code extension designed to supercharge your development workflow. Built with a robust TypeScript architecture, it combines advanced AI capabilities with powerful API testing tools, multi-file refactoring, automated migrations, architecture governance, and project-wide code intelligence (complexity analysis, security scanning, architecture insights), supporting a wide array of modern web frameworks.
+
+**Key Differentiators:**
+- 🔥 **Multi-file AI reasoning** - Understands entire workspace, dependencies, and architecture
+- 🔥 **Workspace Refactor Engine** - Atomic multi-file edits, moves, and transformations
+- 🔥 **Migration Engine** - Automated framework migrations (JS→TS, Express→NestJS, React Class→Hooks)
+- 🔥 **Architecture Rule Enforcement** - Enterprise-level governance with auto-fix
+- 🔥 **GitHub PR Integration** - AI-powered PR reviews with inline comments
+- 🔥 **Runtime Diagnostics** - Parse logs, diagnose errors, and suggest fixes
+- 🔥 **Architecture Overview** - Generate diagrams and documentation automatically
 
 [![Install from VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-blue?style=for-the-badge&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=VishalNandy17.bunnyai-pro)
 
@@ -53,6 +62,22 @@ Leverage advanced AI to automate tedious development tasks:
   - Refactored code suggestions with explanations
   - Identifies complexity issues and code smells
   - Command: `BunnyAI: Review & Refactor Selection`
+
+- **GitHub PR Review**: AI-powered code review for GitHub Pull Requests
+  - Reviews PR diffs and suggests improvements
+  - Identifies architecture issues, code smells, and security concerns
+  - Provides file-by-file feedback
+  - Optional: Post comments directly to PR
+  - Command: `BunnyAI: Review Pull Request`
+  - **Example**: Review a PR before merging to catch issues early
+
+- **Runtime Error Diagnosis**: AI-powered diagnosis for runtime errors
+  - Parses stack traces from Node.js, Python, Java, Go logs
+  - Extracts error details and call stacks
+  - AI root cause analysis with fix suggestions
+  - Auto-jump to source file and line
+  - Commands: `BunnyAI: Analyze Logs`, `BunnyAI: Diagnose Runtime Error`
+  - **Example**: Paste a stack trace to get instant diagnosis and fix suggestions
 
 - **Multi-Provider Support**: 
   - **OpenAI** (GPT-4, GPT-3.5-turbo, etc.)
@@ -114,6 +139,124 @@ Comprehensive code analysis and security scanning capabilities:
   - Sidebar view showing last scan summary
   - Command: `BunnyAI: Analyze Workspace Code Health`
   - **Example**: Run a full workspace scan to identify the most complex files and security hotspots before a code review
+
+### 🔄 Workspace Refactor Engine
+Enterprise-grade multi-file refactoring powered by AI:
+
+- **Multi-File Analysis**: Understand entire workspace structure
+  - Scans all files and builds dependency graphs
+  - Identifies complex modules and architecture smells
+  - Detects circular dependencies
+  - Analyzes file relationships and coupling
+
+- **AI-Powered Refactoring**: Intelligent refactoring suggestions
+  - Proposes file moves and renames
+  - Suggests interface changes across files
+  - Identifies refactoring opportunities
+  - Generates comprehensive refactor plans
+
+- **Atomic Multi-File Edits**: Safe, coordinated transformations
+  - Edit multiple files atomically
+  - Move and rename files with dependency updates
+  - Create new files and modules
+  - Preview diffs before applying
+  - Undo-friendly using VS Code WorkspaceEdit
+
+- **Refactor Plan Execution**: 
+  - JSON-based refactor plans
+  - Validation before execution
+  - Conflict detection
+  - Selective application of changes
+  - Commands: `BunnyAI: Analyze Workspace for Refactor`, `BunnyAI: Apply Workspace Refactor`
+  - **Example**: Refactor a large codebase by moving files, updating imports, and restructuring modules all at once
+
+### 🚀 Migration Engine
+Automated framework and language migrations:
+
+- **JavaScript → TypeScript**: Convert JS projects to TypeScript
+  - Renames files (.js → .ts, .jsx → .tsx)
+  - Adds type annotations
+  - Creates tsconfig.json if needed
+  - Preserves all functionality
+
+- **Express → NestJS**: Migrate Express routes to NestJS
+  - Converts routes to NestJS controllers
+  - Creates module structure
+  - Transforms route handlers
+  - Generates NestJS boilerplate
+
+- **React Class → Hooks**: Convert class components to functional components
+  - Converts class components to hooks
+  - Transforms lifecycle methods to useEffect
+  - Converts state to useState
+  - Preserves component behavior
+
+- **Migration Workflow**:
+  - Analyzes project to determine applicability
+  - Shows migration preview with before/after examples
+  - Generates AI-powered migration plan
+  - Requires user confirmation before applying
+  - Command: `BunnyAI: Run Migration`
+  - **Example**: Migrate a large React codebase from class components to hooks automatically
+
+### 📐 Architecture Rule Enforcement
+Enterprise-level architecture governance:
+
+- **Configurable Rules**: Define rules via `bunnyai.json`
+  - Naming conventions (PascalCase, camelCase, kebab-case, snake_case)
+  - Folder structure requirements
+  - Required architectural layers
+  - Import organization rules
+
+- **Rule Evaluation**:
+  - Detects naming violations
+  - Validates folder structure
+  - Checks for required directories
+  - Identifies circular dependencies
+  - Monitors import depth and patterns
+
+- **AI-Powered Auto-Fix**:
+  - Suggests file renames
+  - Proposes file moves
+  - Creates missing directories
+  - Reorganizes imports using AI
+  - Generates fix plans with previews
+
+- **Violation Dashboard**:
+  - Interactive webview showing all violations
+  - Severity indicators (error, warning, info)
+  - Suggested fixes for each violation
+  - Diff preview before applying
+  - Command: `BunnyAI: Enforce Architecture Rules`
+  - **Example**: Enforce consistent naming and structure across a large team codebase
+
+### 🏗️ Architecture Overview Generator
+Visualize and document your codebase architecture:
+
+- **Architecture Scanning**: Comprehensive workspace analysis
+  - Detects modules, components, and services
+  - Maps dependencies and relationships
+  - Identifies architectural patterns
+  - Analyzes code organization
+
+- **Diagram Generation**: Visual architecture documentation
+  - Mermaid flowcharts and class diagrams
+  - Module dependency graphs
+  - Component relationship charts
+  - Sequence diagrams for interactions
+
+- **AI-Powered Documentation**:
+  - Generates architecture descriptions
+  - Explains module purposes and relationships
+  - Identifies architectural patterns
+  - Highlights hotspots and complexity
+
+- **Export Options**:
+  - Export to Markdown with embedded diagrams
+  - Save architecture documentation
+  - Generate visual reports
+  - Commands: `BunnyAI: Generate Architecture Overview`, `BunnyAI: Export Architecture Docs`
+  - **Example**: Generate comprehensive architecture documentation for onboarding new team members
 
 ### 🔍 Route Detection & CodeLens Integration
 Intelligent route detection with inline execution:
@@ -215,12 +358,22 @@ Seamless integration with VS Code:
   - `BunnyAI: Analyze Error` - Analyze selected error
   - `BunnyAI: Generate Documentation` - Generate docs for selected code
   - `BunnyAI: Configure AI API Key` - Securely configure AI API key
+  - `BunnyAI: Configure GitHub Token` - Configure GitHub token for PR reviews
   - `BunnyAI: Analyze Code Quality` - Analyze code quality metrics
   - `BunnyAI: Review & Refactor Selection` - AI-powered code review and refactoring
   - `BunnyAI: Remove Comments from Selection` - Remove comments safely
   - `BunnyAI: Security Scan File` - Scan file for security vulnerabilities
   - `BunnyAI: Explain Security Issues (with AI)` - Get AI explanations for security issues
   - `BunnyAI: Analyze Workspace Code Health` - Analyze entire workspace code health
+  - `BunnyAI: Analyze Workspace for Refactor` - Analyze workspace for refactoring opportunities
+  - `BunnyAI: Apply Workspace Refactor` - Apply generated refactor plan
+  - `BunnyAI: Run Migration` - Run code migration (JS→TS, Express→NestJS, React Class→Hooks)
+  - `BunnyAI: Enforce Architecture Rules` - Check and enforce architecture rules
+  - `BunnyAI: Review Pull Request` - AI-powered GitHub PR review
+  - `BunnyAI: Analyze Logs` - Parse and analyze runtime logs
+  - `BunnyAI: Diagnose Runtime Error` - Get AI diagnosis for runtime errors
+  - `BunnyAI: Generate Architecture Overview` - Generate architecture documentation with diagrams
+  - `BunnyAI: Export Architecture Docs` - Export architecture documentation to Markdown
 
 - **Progress Notifications**: Visual feedback for long-running operations
 - **Error Notifications**: User-friendly error messages
@@ -254,6 +407,40 @@ Highly configurable via VS Code settings:
 - **Workspace Scanning**: Enable/disable workspace-level code health scanning
 - **Max Workspace Files**: Maximum files to analyze per workspace scan (default: 10000)
 - **Complexity Thresholds**: Configure high (default: 10) and critical (default: 20) complexity thresholds
+
+### Architecture Rules Configuration
+Create a `bunnyai.json` file in your project root to configure architecture rules:
+
+```json
+{
+  "rules": {
+    "naming": {
+      "components": "PascalCase",
+      "services": "camelCase",
+      "controllers": "PascalCase",
+      "repositories": "camelCase",
+      "modules": "PascalCase",
+      "files": "kebab-case"
+    },
+    "structure": {
+      "componentsDir": "src/components",
+      "servicesDir": "src/services",
+      "controllersDir": "src/controllers",
+      "repositoriesDir": "src/repositories",
+      "modulesDir": "src/modules",
+      "requiredLayers": ["controllers", "services", "repositories"]
+    },
+    "imports": {
+      "disallowCircularImports": true,
+      "enforceAbsoluteImports": false,
+      "maxImportDepth": 5,
+      "disallowParentImports": false
+    }
+  }
+}
+```
+
+See `bunnyai.example.json` in the repository for a complete example.
 
 ## 📦 Installation
 
@@ -356,6 +543,116 @@ Highly configurable via VS Code settings:
    - Security issues grouped by severity
 7. Click any file or function to navigate directly to it.
 8. View last scan summary in the Code Health sidebar view.
+
+### Workspace Refactoring
+1. Open a workspace folder.
+2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac).
+3. Run **"BunnyAI: Analyze Workspace for Refactor"**.
+4. Wait for analysis to complete (shows progress).
+5. Review the refactor explorer panel:
+   - Complex modules identified
+   - Circular dependencies detected
+   - Architecture smells highlighted
+   - AI-generated refactoring proposal
+6. Review the generated refactor plan with file diffs.
+7. Select which changes to apply.
+8. Run **"BunnyAI: Apply Workspace Refactor"** to apply selected changes.
+
+**Note**: Always review the refactor plan before applying. Changes can be undone using VS Code's undo feature.
+
+### Running Migrations
+1. Open a workspace folder.
+2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac).
+3. Run **"BunnyAI: Run Migration"**.
+4. Select a migration from the dropdown (e.g., "JavaScript to TypeScript").
+5. Review the migration analysis:
+   - Files to migrate
+   - Warnings and recommendations
+   - Estimated complexity
+6. Review the generated migration plan with before/after examples.
+7. Click **"Apply Migration"** to execute (requires confirmation).
+
+**Note**: Migrations modify multiple files. Always review the plan and ensure you have version control in place.
+
+### Enforcing Architecture Rules
+1. Create a `bunnyai.json` file in your project root (see example below).
+2. Define your architecture rules (naming, structure, imports).
+3. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac).
+4. Run **"BunnyAI: Enforce Architecture Rules"**.
+5. Review violations in the panel:
+   - Naming violations
+   - Structure violations
+   - Import rule violations
+6. Click **"Generate Fix Plan"** to create fixes.
+7. Review the fix plan and diffs.
+8. Click **"Apply Fixes"** to apply (requires confirmation).
+
+**Example `bunnyai.json`:**
+```json
+{
+  "rules": {
+    "naming": {
+      "components": "PascalCase",
+      "services": "camelCase",
+      "files": "kebab-case"
+    },
+    "structure": {
+      "componentsDir": "src/components",
+      "servicesDir": "src/services",
+      "requiredLayers": ["controllers", "services"]
+    },
+    "imports": {
+      "disallowCircularImports": true,
+      "maxImportDepth": 5
+    }
+  }
+}
+```
+
+### Reviewing GitHub Pull Requests
+1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac).
+2. Run **"BunnyAI: Review Pull Request"**.
+3. Enter GitHub repository (owner/repo) and PR number.
+4. Configure GitHub token if not already set (use **"BunnyAI: Configure GitHub Token"**).
+5. Review the AI-generated PR review:
+   - PR summary
+   - File-by-file findings
+   - Architecture issues
+   - Security concerns
+   - Suggested improvements
+6. Optionally post comments directly to the PR.
+
+**Note**: Requires GitHub personal access token with PR read/write permissions.
+
+### Analyzing Runtime Logs
+1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac).
+2. Run **"BunnyAI: Analyze Logs"**.
+3. Select a log file (.log, .txt, .out).
+4. Review parsed error details:
+   - Error type and message
+   - File path and line number
+   - Call stack
+5. Run **"BunnyAI: Diagnose Runtime Error"** for AI-powered diagnosis:
+   - Root cause analysis
+   - Likely fix
+   - Prevention strategy
+   - Test cases to catch the error
+
+**Note**: AI diagnosis requires AI API key configuration.
+
+### Generating Architecture Overview
+1. Open a workspace folder.
+2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac).
+3. Run **"BunnyAI: Generate Architecture Overview"**.
+4. Wait for analysis to complete.
+5. Review the architecture explorer panel:
+   - Mermaid diagrams (flowcharts, class diagrams)
+   - Module dependency graphs
+   - Component relationships
+   - AI-generated architecture description
+6. Run **"BunnyAI: Export Architecture Docs"** to save documentation to Markdown files.
+
+**Note**: Architecture documentation is saved to `architecture/` folder in your workspace.
 
 ## 🔒 Security Considerations
 

@@ -1,0 +1,27 @@
+{
+  "rules": {
+    "naming": {
+      "components": "PascalCase",
+      "services": "camelCase",
+      "controllers": "PascalCase",
+      "repositories": "camelCase",
+      "modules": "PascalCase",
+      "files": "kebab-case"
+    },
+    "structure": {
+      "componentsDir": "src/components",
+      "servicesDir": "src/services",
+      "controllersDir": "src/controllers",
+      "repositoriesDir": "src/repositories",
+      "modulesDir": "src/modules",
+      "requiredLayers": ["controllers", "services", "repositories"]
+    },
+    "imports": {
+      "disallowCircularImports": true,
+      "enforceAbsoluteImports": false,
+      "maxImportDepth": 5,
+      "disallowParentImports": false
+    }
+  }
+}
+

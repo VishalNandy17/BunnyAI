@@ -2,7 +2,7 @@
   "name": "bunnyai-pro",
   "displayName": "BunnyAI Pro",
   "description": "Production-Ready VS Code Extension with Advanced AI & API Tools",
-  "version": "1.0.3",
+  "version": "1.1.2",
   "publisher": "VishalNandy17",
   "icon": "icon.png",
   "repository": {
@@ -117,6 +117,30 @@
         "title": "Export Architecture Docs",
         "category": "BunnyAI",
         "description": "Export architecture documentation to Markdown files"
+      },
+      {
+        "command": "bunnyai.analyzeWorkspaceForRefactor",
+        "title": "Analyze Workspace for Refactor",
+        "category": "BunnyAI",
+        "description": "Analyze workspace structure and propose refactoring opportunities"
+      },
+      {
+        "command": "bunnyai.applyWorkspaceRefactor",
+        "title": "Apply Workspace Refactor",
+        "category": "BunnyAI",
+        "description": "Apply the generated refactor plan to the workspace"
+      },
+      {
+        "command": "bunnyai.runMigration",
+        "title": "Run Migration",
+        "category": "BunnyAI",
+        "description": "Run a code migration (JS to TS, Express to NestJS, React Class to Hooks, etc.)"
+      },
+      {
+        "command": "bunnyai.enforceArchitectureRules",
+        "title": "Enforce Architecture Rules",
+        "category": "BunnyAI",
+        "description": "Check and enforce project-level architecture rules (naming, structure, imports)"
       }
     ],
     "viewsContainers": {
@@ -186,10 +210,11 @@
           "enum": [
             "openai",
             "anthropic",
+            "openrouter",
             "custom"
           ],
           "default": "openai",
-          "description": "AI provider for test generation and error analysis"
+          "description": "AI provider for test generation and error analysis (supports openai, anthropic, openrouter, custom)"
         },
         "bunnyai.aiApiKey": {
           "type": "string",

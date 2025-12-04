@@ -8,7 +8,7 @@ export interface ExtensionConfig {
     cacheTTL?: number;
     maxRetries?: number;
     retryDelay?: number;
-    aiProvider?: 'openai' | 'anthropic' | 'custom';
+    aiProvider?: 'openai' | 'anthropic' | 'openrouter' | 'custom';
     aiApiKey?: string;
     aiModel?: string;
     autoDetectFramework?: boolean;
@@ -58,7 +58,7 @@ export class ConfigManager {
             cacheTTL: this.config.get<number>('cacheTTL', 300000), // 5 minutes
             maxRetries: this.config.get<number>('maxRetries', 3),
             retryDelay: this.config.get<number>('retryDelay', 1000),
-            aiProvider: this.config.get<'openai' | 'anthropic' | 'custom'>('aiProvider', 'openai'),
+            aiProvider: this.config.get<'openai' | 'anthropic' | 'openrouter' | 'custom'>('aiProvider', 'openai'),
             aiApiKey: this.config.get<string>('aiApiKey'),
             aiModel: this.config.get<string>('aiModel'),
             autoDetectFramework: this.config.get<boolean>('autoDetectFramework', true),
@@ -114,7 +114,7 @@ export class ConfigManager {
         return this.getConfig().retryDelay || 1000;
     }
 
-    getAIProvider(): 'openai' | 'anthropic' | 'custom' {
+    getAIProvider(): 'openai' | 'anthropic' | 'openrouter' | 'custom' {
         return this.getConfig().aiProvider || 'openai';
     }
 

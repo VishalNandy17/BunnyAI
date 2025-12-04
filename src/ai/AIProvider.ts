@@ -110,12 +110,104 @@ export class AIProvider implements IAIProvider {
         }
     }
 
+    async generateRefactorPlan(prompt: string, files?: Array<{ path: string; content: string }>): Promise<import('../refactor/refactorExecutor').RefactorPlan> {
+        try {
+            const provider = this.configManager.getAIProvider();
+            const apiKey = await this.getApiKey();
+            const model = this.configManager.getAIModel() || 'gpt-4';
+
+            if (!apiKey) {
+                throw new Error('AI API key not configured. Please set bunnyai.aiApiKey in settings.');
+            }
+
+            // Build enhanced prompt with file contents
+            let enhancedPrompt = prompt;
+            if (files && files.length > 0) {
+                const fileContents = files.map(f => 
+                    `File: ${f.path}\n\`\`\`\n${f.content}\n\`\`\``
+                ).join('\n\n');
+                enhancedPrompt = `${prompt}\n\nFile Contents:\n${fileContents}`;
+            }
+
+            enhancedPrompt += `\n\nReturn a RefactorPlan in the following JSON format:
+{
+  "edits": [
+    {
+      "file": "path/to/file.ts",
+      "oldText": "original code",
+      "newText": "refactored code",
+      "description": "what changed"
+    }
+  ],
+  "moves": [
+    {
+      "from": "old/path/file.ts",
+      "to": "new/path/file.ts",
+      "reason": "why moved"
+    }
+  ],
+  "creates": [
+    {
+      "file": "new/file.ts",
+      "content": "file content",
+      "description": "what this file is"
+    }
+  ],
+  "summary": "Brief summary of the migration"
+}
+
+Return ONLY valid JSON, no markdown formatting.`;
+
+            const response = await this.callAI(provider, apiKey, model, enhancedPrompt);
+            
+            // Parse response to RefactorPlan
+            return this.parseRefactorPlanResponse(response);
+        } catch (error: any) {
+            Logger.error('Failed to generate refactor plan', error);
+            throw new Error(`Failed to generate refactor plan: ${error.message}`);
+        }
+    }
+
+    private parseRefactorPlanResponse(response: string): import('../refactor/refactorExecutor').RefactorPlan {
+        try {
+            // Try to extract JSON from response
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                return {
+                    edits: parsed.edits || [],
+                    moves: parsed.moves || [],
+                    creates: parsed.creates || [],
+                    summary: parsed.summary || ''
+                };
+            }
+        } catch (error) {
+            Logger.error('Failed to parse refactor plan response', error);
+        }
+
+        // Fallback: return empty plan
+        return {
+            edits: [],
+            moves: [],
+            creates: [],
+            summary: 'Failed to parse AI response'
+        };
+    }
+
     private async callAI(provider: string, apiKey: string, model: string, prompt: string): Promise<string> {
-        switch (provider) {
+        // Auto-detect OpenRouter keys when provider is still set to "openai"
+        const effectiveProvider =
+            provider === 'openai' && apiKey?.startsWith('sk-or-')
+                ? 'openrouter'
+                : provider;
+
+        switch (effectiveProvider) {
             case 'openai':
                 return this.callOpenAI(apiKey, model, prompt);
             case 'anthropic':
                 return this.callAnthropic(apiKey, model, prompt);
+            case 'openrouter':
+                return this.callOpenRouter(apiKey, model, prompt);
             case 'custom':
                 return this.callCustom(apiKey, model, prompt);
             default:
@@ -155,6 +247,48 @@ export class AIProvider implements IAIProvider {
             throw new Error('No response from OpenAI API');
         } catch (error: any) {
             Logger.error('OpenAI API call failed', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Call OpenRouter using an OpenAI-compatible chat completions API.
+     * Users can configure any OpenRouter model id via bunnyai.aiModel.
+     */
+    private async callOpenRouter(apiKey: string, model: string, prompt: string): Promise<string> {
+        try {
+            await this.enforceRateLimit();
+            const response = await this.httpClient.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                {
+                    model: model,
+                    messages: [
+                        { role: 'system', content: 'You are a helpful coding assistant.' },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 2000
+                },
+                {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                    // Optional but recommended headers like HTTP-Referer or X-Title
+                    // can be added later without breaking compatibility.
+                }
+            );
+
+            if (response.status !== 200) {
+                throw new Error(`OpenRouter API error: ${response.statusText}`);
+            }
+
+            const data = response.data;
+            if (data.choices && data.choices.length > 0) {
+                return data.choices[0].message.content;
+            }
+
+            throw new Error('No response from OpenRouter API');
+        } catch (error: any) {
+            Logger.error('OpenRouter API call failed', error);
             throw error;
         }
     }

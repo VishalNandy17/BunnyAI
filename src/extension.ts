@@ -28,6 +28,15 @@ import { ArchitectureScanner } from './architecture/scanner';
 import { DiagramGenerator } from './architecture/diagramGenerator';
 import { ArchitectureExporter } from './architecture/exporter';
 import { ArchitectureExplorerPanel } from './webview/panels/ArchitectureExplorerPanel';
+import { WorkspaceRefactorScanner } from './refactor/workspaceScanner';
+import { DependencyGraphBuilder } from './refactor/depGraph';
+import { RefactorAnalyzer } from './refactor/refactorAnalyzer';
+import { RefactorExplorerPanel } from './webview/panels/RefactorExplorerPanel';
+import { MigrationRegistry } from './migrations/registry';
+import { MigrationRunner } from './migrations/migrationRunner';
+import { MigrationPanel } from './webview/panels/MigrationPanel';
+import { ArchitectureRuleEngine } from './architecture/ruleEngine';
+import { ArchitectureRulesPanel } from './webview/panels/ArchitectureRulesPanel';
 
 let statusBarItem: vscode.StatusBarItem;
 let statusBarBaseTooltip = '';
@@ -1148,6 +1157,270 @@ Provide a clear, actionable analysis for each issue.`;
                     } else {
                         vscode.window.showErrorMessage(`Failed to export architecture docs: ${error.message || 'Unknown error'}`);
                     }
+                }
+            }),
+            vscode.commands.registerCommand('bunnyai.analyzeWorkspaceForRefactor', async () => {
+                try {
+                    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                    if (!workspaceFolder) {
+                        vscode.window.showWarningMessage('No workspace folder open. Open a folder to analyze.');
+                        return;
+                    }
+
+                    const scanner = new WorkspaceRefactorScanner();
+                    const depGraphBuilder = new DependencyGraphBuilder(workspaceFolder.uri.fsPath);
+                    const analyzer = new RefactorAnalyzer();
+
+                    await vscode.window.withProgress(
+                        {
+                            location: vscode.ProgressLocation.Notification,
+                            title: 'Analyzing Workspace for Refactor',
+                            cancellable: true
+                        },
+                        async (progress, cancellationToken) => {
+                            try {
+                                progress.report({ increment: 0, message: 'Scanning workspace files...' });
+
+                                const scanResult = await scanner.scanWorkspace(workspaceFolder);
+
+                                if (cancellationToken.isCancellationRequested) {
+                                    return;
+                                }
+
+                                progress.report({ increment: 30, message: 'Building dependency graph...' });
+
+                                const depGraph = depGraphBuilder.buildGraph(scanResult.files);
+
+                                if (cancellationToken.isCancellationRequested) {
+                                    return;
+                                }
+
+                                progress.report({ increment: 60, message: 'Analyzing refactoring opportunities...' });
+
+                                const analysisResult = await analyzer.analyzeForRefactor(scanResult, depGraph);
+
+                                if (cancellationToken.isCancellationRequested) {
+                                    return;
+                                }
+
+                                progress.report({ increment: 100, message: 'Complete!' });
+
+                                // Show refactor explorer panel
+                                RefactorExplorerPanel.show(
+                                    context.extensionUri,
+                                    analysisResult
+                                );
+
+                                const complexCount = analysisResult.complexModules.length;
+                                const circularCount = analysisResult.circularDependencies.length;
+                                const smellsCount = analysisResult.architectureSmells.length;
+
+                                vscode.window.showInformationMessage(
+                                    `Refactor analysis complete! Found ${complexCount} complex modules, ${circularCount} circular dependencies, ${smellsCount} architecture smells.`
+                                );
+                            } catch (error) {
+                                Logger.error('Failed to analyze workspace for refactor', error);
+                                vscode.window.showErrorMessage(
+                                    `Failed to analyze workspace: ${error instanceof Error ? error.message : 'Unknown error'}`
+                                );
+                            }
+                        }
+                    );
+                } catch (error) {
+                    Logger.error('Failed to start refactor analysis', error);
+                    vscode.window.showErrorMessage('Failed to start refactor analysis. Check output for details.');
+                }
+            }),
+            vscode.commands.registerCommand('bunnyai.runMigration', async () => {
+                try {
+                    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                    if (!workspaceFolder) {
+                        vscode.window.showWarningMessage('No workspace folder open. Open a folder to run migrations.');
+                        return;
+                    }
+
+                    const runner = new MigrationRunner();
+                    
+                    // Collect workspace info
+                    await vscode.window.withProgress(
+                        {
+                            location: vscode.ProgressLocation.Notification,
+                            title: 'Detecting Project Type',
+                            cancellable: false
+                        },
+                        async (progress) => {
+                            progress.report({ increment: 0, message: 'Analyzing project...' });
+                            const workspaceInfo = await runner.collectWorkspaceInfo(workspaceFolder);
+                            
+                            // Get applicable migrations
+                            const allMigrations = MigrationRegistry.getAll();
+                            const applicableMigrations = MigrationRegistry.getApplicable(workspaceInfo.projectInfo);
+                            
+                            if (applicableMigrations.length === 0) {
+                                vscode.window.showInformationMessage(
+                                    'No applicable migrations found for this project type.'
+                                );
+                                return;
+                            }
+
+                            // Show migration picker
+                            const migrationItems = applicableMigrations.map(m => ({
+                                label: m.name,
+                                description: m.description,
+                                detail: `ID: ${m.id}`,
+                                migration: m
+                            }));
+
+                            const selected = await vscode.window.showQuickPick(migrationItems, {
+                                placeHolder: 'Select a migration to run'
+                            });
+
+                            if (!selected) {
+                                return;
+                            }
+
+                            const migration = selected.migration;
+
+                            // Run migration analysis and generate plan
+                            await vscode.window.withProgress(
+                                {
+                                    location: vscode.ProgressLocation.Notification,
+                                    title: `Running Migration: ${migration.name}`,
+                                    cancellable: true
+                                },
+                                async (progress, cancellationToken) => {
+                                    try {
+                                        progress.report({ increment: 0, message: 'Analyzing migration...' });
+                                        
+                                        const analysis = await runner.analyzeMigration(migration, workspaceInfo);
+                                        
+                                        if (cancellationToken.isCancellationRequested) {
+                                            return;
+                                        }
+
+                                        if (!analysis.applicable) {
+                                            vscode.window.showWarningMessage(
+                                                `Migration "${migration.name}" is not applicable: ${analysis.summary}`
+                                            );
+                                            return;
+                                        }
+
+                                        progress.report({ increment: 40, message: 'Generating refactor plan with AI...' });
+
+                                        const refactorPlan = await runner.generateRefactorPlan(
+                                            migration,
+                                            analysis,
+                                            workspaceInfo
+                                        );
+
+                                        if (cancellationToken.isCancellationRequested) {
+                                            return;
+                                        }
+
+                                        progress.report({ increment: 80, message: 'Preparing results...' });
+
+                                        const beforeExamples: Array<{ file: string; content: string }> = [];
+                                        const afterExamples: Array<{ file: string; content: string }> = [];
+
+                                        if (refactorPlan) {
+                                            const examples = runner.extractExamples(refactorPlan, workspaceInfo);
+                                            beforeExamples.push(...examples.beforeExamples);
+                                            afterExamples.push(...examples.afterExamples);
+                                        }
+
+                                        const result = {
+                                            migrationId: migration.id,
+                                            analysis,
+                                            refactorPlan,
+                                            beforeExamples,
+                                            afterExamples
+                                        };
+
+                                        progress.report({ increment: 100, message: 'Complete!' });
+
+                                        // Show migration panel
+                                        MigrationPanel.show(context.extensionUri, result);
+
+                                        vscode.window.showInformationMessage(
+                                            `Migration analysis complete! Found ${analysis.filesToMigrate.length} file(s) to migrate.`
+                                        );
+                                    } catch (error) {
+                                        Logger.error('Failed to run migration', error);
+                                        vscode.window.showErrorMessage(
+                                            `Failed to run migration: ${error instanceof Error ? error.message : 'Unknown error'}`
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                } catch (error) {
+                    Logger.error('Failed to start migration', error);
+                    vscode.window.showErrorMessage('Failed to start migration. Check output for details.');
+                }
+            }),
+            vscode.commands.registerCommand('bunnyai.enforceArchitectureRules', async () => {
+                try {
+                    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                    if (!workspaceFolder) {
+                        vscode.window.showWarningMessage('No workspace folder open. Open a folder to enforce architecture rules.');
+                        return;
+                    }
+
+                    const ruleEngine = new ArchitectureRuleEngine(workspaceFolder);
+
+                    await vscode.window.withProgress(
+                        {
+                            location: vscode.ProgressLocation.Notification,
+                            title: 'Enforcing Architecture Rules',
+                            cancellable: true
+                        },
+                        async (progress, cancellationToken) => {
+                            try {
+                                progress.report({ increment: 0, message: 'Loading configuration...' });
+
+                                if (cancellationToken.isCancellationRequested) {
+                                    return;
+                                }
+
+                                progress.report({ increment: 20, message: 'Scanning workspace...' });
+
+                                if (cancellationToken.isCancellationRequested) {
+                                    return;
+                                }
+
+                                progress.report({ increment: 50, message: 'Evaluating rules...' });
+
+                                const result = await ruleEngine.evaluateRules();
+
+                                if (cancellationToken.isCancellationRequested) {
+                                    return;
+                                }
+
+                                progress.report({ increment: 100, message: 'Complete!' });
+
+                                // Show architecture rules panel
+                                ArchitectureRulesPanel.show(context.extensionUri, result);
+
+                                const { total, errors, warnings } = result.summary;
+                                if (total === 0) {
+                                    vscode.window.showInformationMessage('✅ No architecture rule violations found!');
+                                } else {
+                                    vscode.window.showInformationMessage(
+                                        `Architecture rules evaluation complete! Found ${total} violation(s): ${errors} error(s), ${warnings} warning(s).`
+                                    );
+                                }
+                            } catch (error) {
+                                Logger.error('Failed to enforce architecture rules', error);
+                                vscode.window.showErrorMessage(
+                                    `Failed to enforce architecture rules: ${error instanceof Error ? error.message : 'Unknown error'}`
+                                );
+                            }
+                        }
+                    );
+                } catch (error) {
+                    Logger.error('Failed to start architecture rules enforcement', error);
+                    vscode.window.showErrorMessage('Failed to start architecture rules enforcement. Check output for details.');
                 }
             })
         );
